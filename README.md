@@ -1,53 +1,54 @@
-# 🚗 NestSpot
+# NestSpot
 
 [![CI Pipeline](https://github.com/blosny/nestspot/actions/workflows/ci.yml/badge.svg)](https://github.com/blosny/nestspot/actions/workflows/ci.yml)
 [![Python Version](https://img.shields.io/badge/python-3.13%2B-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/framework-FastAPI-009688.svg)](https://fastapi.tiangolo.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-> **Peer-to-Peer Neighborhood & Residential Parking Sharing Platform**  
-> Solves residential parking friction by allowing apartment and gated community residents to share their allocated parking spots when they are away at work or traveling.
+Residential and neighborhood parking sharing platform designed for apartment complexes and gated communities. It allows residents to temporarily share their allocated private parking spaces with neighbors and guests when away at work or traveling.
 
 ---
 
-## 🌟 The 4 Core Pillars
+## Key Problems and Solutions
 
-1. **🎟️ Guest Parking Passes & Security Gate Permit:**  
-   Instant digital permits (Plate + Authorization code) for security guards to prevent gate disputes.
-2. **🚙 Second-Car Relief:**  
-   Enables households with a second vehicle to safely and legally park in neighbors' idle spots.
-3. **📅 Conflict-Free Scheduling (No More WhatsApp Spam):**  
-   Hourly transparent availability calendars and 1-click spot reservations instead of chaotic neighborhood chat messages.
-4. **⏱️ Live ETA & Smart Return Buffer:**  
-   When the spot owner leaves work early, they tap *"Headed Home (ETA: 20m)"*, instantly notifying the guest with a live countdown timer.
+1. **Guest Parking Permits & Security Verification:**  
+   Instant digital parking passes with vehicle plates and verification codes for apartment security guards.
+2. **Second-Car Support:**  
+   Enables households with multiple vehicles to utilize vacant neighbor spots with mutual consent.
+3. **Transparent Scheduling:**  
+   Direct hourly spot availability schedules and 1-click booking, eliminating uncoordinated parking disputes.
+4. **Live ETA Return Alerts:**  
+   Real-time notifications and countdown buffers when the spot owner is returning home from work.
 
 ---
 
-## 🛠️ Tech Stack & Architecture
+## Tech Stack
 
-- **Backend:** Python 3.13+, [FastAPI](https://fastapi.tiangolo.com/), Pydantic v2, Uvicorn
-- **Testing & Quality:** Pytest, Pytest-Asyncio, HTTPX, Ruff linter
-- **Frontend:** Glassmorphism UI with 2D interactive parking grid, real-time live timers, and digital pass renderer
+- **Backend:** Python 3.13, FastAPI, Pydantic v2, Uvicorn
+- **Testing & Tooling:** Pytest, Pytest-Asyncio, HTTPX, Ruff
+- **Frontend:** Vanilla HTML5, CSS3, JavaScript (Clean UI with interactive 2D parking grid)
 - **CI/CD:** GitHub Actions for automated linting, test suites, and Docker validation
 - **Containerization:** Multi-stage Dockerfile and Docker Compose
 
 ---
 
-## 🚀 Quickstart Guide
+## Quickstart
 
 ### Prerequisites
 - Python 3.13+
 - Git
 
-### 1. Clone & Setup Virtual Environment
+### 1. Setup Environment
 ```bash
 git clone https://github.com/blosny/nestspot.git
 cd nestspot
 
 # Create and activate virtual environment
 python -m venv .venv
+
 # On Windows:
 .venv\Scripts\activate
+
 # On Linux / macOS:
 source .venv/bin/activate
 
@@ -55,7 +56,7 @@ source .venv/bin/activate
 pip install -r requirements-dev.txt
 ```
 
-### 2. Run Tests & Linter
+### 2. Run Tests and Linter
 ```bash
 # Run pytest test suite
 pytest -v
@@ -68,21 +69,21 @@ ruff check .
 ```bash
 uvicorn app.main:app --reload --port 8000
 ```
-Open **`http://localhost:8000`** in your browser.  
-Interactive OpenAPI / Swagger documentation is available at **`http://localhost:8000/docs`**.
+Open `http://localhost:8000` in your browser.  
+OpenAPI / Swagger documentation is available at `http://localhost:8000/docs`.
 
 ---
 
-## 🐳 Running with Docker
+## Docker Setup
 
 ```bash
 docker compose up --build
 ```
-The application will be accessible at `http://localhost:8000`.
+Access the application at `http://localhost:8000`.
 
 ---
 
-## 📂 Project Structure
+## Project Layout
 
 ```
 nestspot/
@@ -92,17 +93,17 @@ nestspot/
 │   ├── config.py                  # Pydantic BaseSettings configuration
 │   ├── models/                    # Pydantic schemas (Spots, Bookings, ETA)
 │   ├── routers/                   # API endpoint controllers
-│   ├── services/                  # Business logic & time conflict resolution
-│   └── static/                    # Modern responsive frontend assets
+│   ├── services/                  # Business logic & seed data
+│   └── static/                    # Frontend assets (HTML, CSS, JS)
 ├── tests/                         # Pytest test suite
-├── Dockerfile                     # Multi-stage container definition
-├── docker-compose.yml             # Local container orchestration
-├── pyproject.toml                 # Ruff and Pytest tooling config
-├── requirements.txt               # Production Python dependencies
-└── requirements-dev.txt           # Testing & development dependencies
+├── Dockerfile                     # Container definition
+├── docker-compose.yml             # Container orchestration
+├── pyproject.toml                 # Tooling configuration
+├── requirements.txt               # Production dependencies
+└── requirements-dev.txt           # Development dependencies
 ```
 
 ---
 
-## 📄 License
-This project is open-source and licensed under the [MIT License](LICENSE).
+## License
+Distributed under the [MIT License](LICENSE).

@@ -2,9 +2,11 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
+from app.routers import spots
 
 # Create FastAPI application instance
 app = FastAPI(
@@ -15,6 +17,9 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
+# Register API Routers
+app.include_router(spots.router)
+
 # Enable CORS for modern client flexibility
 app.add_middleware(
     CORSMiddleware,
@@ -24,10 +29,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount static files directory if it exists
+# Mount static files directory
 static_dir = Path(__file__).resolve().parent / "static"
 if static_dir.exists():
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
+
+@app.get("/", tags=["Frontend"])
+async def serve_index():
+    """Serve the interactive web frontend."""
+    index_path = static_dir / "index.html"
+    if index_path.exists():
+        return FileResponse(index_path)
+    return {"message": f"Welcome to {settings.APP_NAME} API. Visit /docs for OpenAPI documentation."}
 
 
 @app.get("/api/health", tags=["System"])

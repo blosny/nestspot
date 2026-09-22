@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NestSpot · Residential Parking Sharing</title>
+    <meta name="description" content="Residential parking spot sharing platform for neighbors and guests.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2310b981'><circle cx='12' cy='12' r='10'/></svg>">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Minimal Header -->
+        <header class="app-header">
+            <div class="brand">
+                <div class="brand-icon">
+                    <i data-lucide="parking-circle"></i>
+                </div>
+                <div class="brand-info">
+                    <span class="brand-title">NestSpot</span>
+                    <span class="brand-subtitle">Aura Park Residence</span>
+                </div>
+            </div>
+
+            <div class="header-search">
+                <i data-lucide="search" class="search-icon"></i>
+                <input type="text" id="spotSearchInput" placeholder="Search flat, owner or plate (e.g. A-01, Ahmet, 34)...">
+            </div>
+
+            <div class="header-profile">
+                <div class="site-badge">
+                    <span class="live-dot"></span>
+                    <span id="spotsAvailableSummary">15 spots free</span>
+                </div>
+                <div class="profile-chip">
+                    <span class="profile-avatar">AY</span>
+                    <span class="profile-name">Ahmet Y. (A-1)</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Compact Filter Bar -->
+        <div class="toolbar">
+            <div class="toolbar-left">
+                <!-- Segment Control: Block Switcher -->
+                <div class="segment-control">
+                    <button class="segment-btn active" data-block="ALL">All Blocks</button>
+                    <button class="segment-btn" data-block="A">Block A</button>
+                    <button class="segment-btn" data-block="B">Block B</button>
+                </div>
+
+                <!-- Status Filter Pills -->
+                <div class="filter-group">
+                    <button class="filter-btn active" data-filter="ALL">All (24)</button>
+                    <button class="filter-btn" data-filter="AVAILABLE">
+                        <span class="filter-indicator ind-available"></span> Free Now (<span id="countAvailable">15</span>)
+                    </button>
+                    <button class="filter-btn" data-filter="EV">
+                        <i data-lucide="zap" class="btn-icon"></i> EV Chargers (<span id="countEv">9</span>)
+                    </button>
+                    <button class="filter-btn" data-filter="VACATION">
+                        Vacation (<span id="countVacation">2</span>)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Legend -->
+            <div class="toolbar-right">
+                <div class="status-legend">
+                    <span class="legend-item"><span class="legend-dot ind-available"></span> Available</span>
+                    <span class="legend-item"><span class="legend-dot ind-owner"></span> Owner</span>
+                    <span class="legend-item"><span class="legend-dot ind-neighbor"></span> Neighbor</span>
+                    <span class="legend-item"><span class="legend-dot ind-guest"></span> Guest</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Parking Layout -->
+        <main class="parking-deck">
+            <!-- Block A -->
+            <section class="block-section" id="blockASection">
+                <div class="section-title">
+                    <h2>Block A</h2>
+                    <span>Flats 1 – 12</span>
+                </div>
+                <div class="spots-grid" id="blockAGrid"></div>
+            </section>
+
+            <!-- Driveway Divider -->
+            <div class="driveway-divider" id="drivewayDivider">
+                <span>DRIVEWAY & ENTRY AISLE</span>
+            </div>
+
+            <!-- Block B -->
+            <section class="block-section" id="blockBSection">
+                <div class="section-title">
+                    <h2>Block B</h2>
+                    <span>Flats 1 – 12</span>
+                </div>
+                <div class="spots-grid" id="blockBGrid"></div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Spot Detail Modal -->
+    <div class="modal-backdrop" id="spotModalBackdrop">
+        <div class="modal-card">
+            <button class="modal-close-btn" id="closeModalBtn">
+                <i data-lucide="x"></i>
+            </button>
+            <div id="modalContent"></div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/static/js/parking-grid.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
