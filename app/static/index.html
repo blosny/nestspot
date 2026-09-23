@@ -16,6 +16,9 @@
 </head>
 <body>
     <div class="app-container">
+        <!-- Live Floating ETA Notification Alert -->
+        <div id="liveEtaAlertContainer"></div>
+
         <!-- Minimal Header -->
         <header class="app-header">
             <div class="brand">
@@ -39,6 +42,12 @@
                     <button class="lang-btn" id="langTrBtn" onclick="setLanguage('tr')">TR</button>
                     <button class="lang-btn" id="langEnBtn" onclick="setLanguage('en')">EN</button>
                 </div>
+
+                <!-- ETA Departure Broadcast Button -->
+                <button class="btn-action-pill" id="headedHomeBtn" style="border-color: rgba(245, 158, 11, 0.4); color: #fbbf24;">
+                    <i data-lucide="navigation" style="color: #fbbf24;"></i>
+                    <span data-i18n="iAmHeadedHomeBtn">Eve Dönüyorum (ETA)</span>
+                </button>
 
                 <!-- Gate Security Button -->
                 <button class="btn-action-pill" id="securityGateBtn">
@@ -138,6 +147,45 @@
         </div>
     </div>
 
+    <!-- Headed Home / ETA Broadcast Modal -->
+    <div class="modal-backdrop" id="etaModalBackdrop">
+        <div class="modal-card">
+            <button class="modal-close-btn" id="closeEtaModalBtn">
+                <i data-lucide="x"></i>
+            </button>
+            <div style="margin-bottom: 1rem;">
+                <h3 style="font-size: 1.15rem; font-weight: 700; color: #fff;" data-i18n="etaModalTitle">İşten Çıkış / Eve Dönüş Bildirimi</h3>
+                <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 0.2rem;" data-i18n="etaModalDesc">Park yerinizi kullanan komşunuza nazikçe yer açması için tahmini varış sürenizi iletin.</p>
+            </div>
+            
+            <form id="etaBroadcastForm" onsubmit="window.submitEtaBroadcast(event)">
+                <div class="form-group">
+                    <label class="form-label" data-i18n="etaMinutesLabel">Tahmini Varış Süresi</label>
+                    <select id="etaMinutesInput" class="form-input" style="background:#0b0f17;">
+                        <option value="15">15 Dakika (Yakın Mesafe)</option>
+                        <option value="20" selected>20 Dakika (Standart Dönüş)</option>
+                        <option value="30">30 Dakika (Trafik Var)</option>
+                        <option value="45">45 Dakika (Uzak Mesafe)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Sizin Park Yeriniz</label>
+                    <input type="text" class="form-input" value="Spot A-01 (A Blok · Daire 1 - Ahmet Yılmaz)" disabled style="opacity: 0.7;">
+                </div>
+
+                <div style="display:flex; gap:0.5rem; margin-top:1.25rem;">
+                    <button type="button" class="filter-btn" style="flex:1; justify-content:center;" onclick="document.getElementById('etaModalBackdrop').classList.remove('active')">
+                        <span data-i18n="cancelBtn">İptal</span>
+                    </button>
+                    <button type="submit" class="filter-btn active" style="flex:1.2; justify-content:center; background:#f59e0b; border:none; color:#000; font-weight:700;">
+                        <span data-i18n="broadcastEtaBtn">Canlı Bildirimi Başlat</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Security Gate Modal -->
     <div class="modal-backdrop" id="securityModalBackdrop">
         <div class="modal-card">
@@ -166,6 +214,20 @@
                 <h3 style="font-size: 1.15rem; font-weight: 700; color: #fff;" data-i18n="activePermitsTitle">Aktif Rezervasyonlar ve Misafir Kartları</h3>
             </div>
             <div id="activePermitsList" style="max-height: 380px; overflow-y: auto;"></div>
+        </div>
+    </div>
+
+    <!-- Alternative Spots Modal -->
+    <div class="modal-backdrop" id="alternativesModalBackdrop">
+        <div class="modal-card">
+            <button class="modal-close-btn" id="closeAlternativesModalBtn">
+                <i data-lucide="x"></i>
+            </button>
+            <div style="margin-bottom: 1rem;">
+                <h3 style="font-size: 1.15rem; font-weight: 700; color: #fff;" data-i18n="suggestedAlternativeTitle">Önerilen Alternatif Boş Yerler</h3>
+                <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 0.2rem;">Aracınızı hemen şu an müsait olan komşu yerlerine çekebilirsiniz:</p>
+            </div>
+            <div id="alternativesList"></div>
         </div>
     </div>
 

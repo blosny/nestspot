@@ -122,7 +122,7 @@ function renderCleanSpotModal(spot) {
     }
 
     return `
-        <div style="margin-bottom: 1rem;">
+        <div style="margin-bottom: 1rem; padding-right: 2.5rem;">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.25rem;">
                 <h3 style="font-size: 1.15rem; font-weight: 700; color: #fff;">${t("spotTitle")} ${spot.spot_number}</h3>
                 <span style="font-size: 0.75rem; color: #94a3b8; background: #1e293b; padding: 0.2rem 0.5rem; border-radius: 4px;">
@@ -158,7 +158,7 @@ function renderCleanSpotModal(spot) {
 
         <div id="bookingActionContainer">
             ${isFree ? `
-                <div style="display: flex; gap: 0.5rem;">
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
                     <button class="filter-btn" style="flex:1; justify-content:center; background:#10b981; color:#fff; border:none; font-weight:600;" onclick="window.showBookingForm('${spot.id}', 'second_car')">
                         ${t("parkSecondCarBtn")}
                     </button>
@@ -166,10 +166,18 @@ function renderCleanSpotModal(spot) {
                         ${t("guestPassBtn")}
                     </button>
                 </div>
-            ` : isReserved ? `
-                <button class="filter-btn" style="width:100%; justify-content:center; background:#f43f5e; color:#fff; border:none; font-weight:600;" onclick="window.handleReleaseActiveSpot('${spot.id}')">
-                    ${t("releaseBtn")}
+                <button class="filter-btn" style="width:100%; justify-content:center;" onclick="document.getElementById('spotModalBackdrop').classList.remove('active')">
+                    ${t("closeBtn")}
                 </button>
+            ` : isReserved ? `
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="filter-btn" style="flex:1; justify-content:center; background:#f43f5e; color:#fff; border:none; font-weight:600;" onclick="window.handleReleaseActiveSpot('${spot.id}')">
+                        ${t("releaseBtn")}
+                    </button>
+                    <button class="filter-btn" style="flex:0.6; justify-content:center;" onclick="document.getElementById('spotModalBackdrop').classList.remove('active')">
+                        ${t("closeBtn")}
+                    </button>
+                </div>
             ` : `
                 <button class="filter-btn" style="width:100%; justify-content:center;" onclick="document.getElementById('spotModalBackdrop').classList.remove('active')">
                     ${t("closeBtn")}
