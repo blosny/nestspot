@@ -1,0 +1,12 @@
+services:
+  nestspot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nestspot-app
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_NAME=NestSpot
+      - DEBUG=false
+    restart: unless-stopped
