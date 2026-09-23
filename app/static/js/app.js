@@ -1,12 +1,14 @@
 /**
- * NestSpot - Main Client Logic with Booking & Security Gate Lookup
+ * NestSpot - Main Client Logic with Booking, Security Gate, and Live ETA Departure System
  */
 
 let allSpots = [];
 let activeBookings = [];
+let activeAlerts = [];
 let currentBlock = "ALL";
 let currentFilter = "ALL";
 let currentSearch = "";
+let etaTimerInterval = null;
 
 document.addEventListener("DOMContentLoaded", () => {
     applyTranslations();
@@ -14,6 +16,13 @@ document.addEventListener("DOMContentLoaded", () => {
     fetchComplexStats();
     fetchSpots();
     fetchActiveBookings();
+    fetchActiveAlerts();
+
+    // Periodic live sync for ETA alerts & bookings every 4 seconds
+    setInterval(() => {
+        fetchActiveAlerts();
+        fetchActiveBookings();
+    }, 4000);
 });
 
 function initEventListeners() {
@@ -55,6 +64,22 @@ function initEventListeners() {
         closeModalBtn.addEventListener("click", () => modalBackdrop.classList.remove("active"));
         modalBackdrop.addEventListener("click", (e) => {
             if (e.target === modalBackdrop) modalBackdrop.classList.remove("active");
+        });
+    }
+
+    // ETA Modal Listeners
+    const headedHomeBtn = document.getElementById("headedHomeBtn");
+    const etaModalBackdrop = document.getElementById("etaModalBackdrop");
+    const closeEtaModalBtn = document.getElementById("closeEtaModalBtn");
+    if (headedHomeBtn && etaModalBackdrop) {
+        headedHomeBtn.addEventListener("click", () => {
+            etaModalBackdrop.classList.add("active");
+        });
+        if (closeEtaModalBtn) {
+            closeEtaModalBtn.addEventListener("click", () => etaModalBackdrop.classList.remove("active"));
+        }
+        etaModalBackdrop.addEventListener("click", (e) => {
+            if (e.target === etaModalBackdrop) etaModalBackdrop.classList.remove("active");
         });
     }
 
@@ -103,6 +128,16 @@ function initEventListeners() {
             if (e.target === activePermitsModalBackdrop) activePermitsModalBackdrop.classList.remove("active");
         });
     }
+
+    // Alternatives Modal
+    const closeAlternativesModalBtn = document.getElementById("closeAlternativesModalBtn");
+    const alternativesModalBackdrop = document.getElementById("alternativesModalBackdrop");
+    if (closeAlternativesModalBtn && alternativesModalBackdrop) {
+        closeAlternativesModalBtn.addEventListener("click", () => alternativesModalBackdrop.classList.remove("active"));
+        alternativesModalBackdrop.addEventListener("click", (e) => {
+            if (e.target === alternativesModalBackdrop) alternativesModalBackdrop.classList.remove("active");
+        });
+    }
 }
 
 async function fetchComplexStats() {
@@ -149,6 +184,197 @@ async function fetchActiveBookings() {
         console.error("Error fetching active bookings:", err);
     }
 }
+
+async function fetchActiveAlerts() {
+    try {
+        const res = await fetch("/api/eta/active");
+        if (!res.ok) throw new Error("Failed to fetch active ETA alerts");
+        activeAlerts = await res.json();
+        renderEtaAlertBanner();
+    } catch (err) {
+        console.error("Error fetching ETA alerts:", err);
+    }
+}
+
+function renderEtaAlertBanner() {
+    const bannerContainer = document.getElementById("liveEtaAlertContainer");
+    if (!bannerContainer) return;
+
+    if (activeAlerts.length === 0) {
+        bannerContainer.innerHTML = "";
+        if (etaTimerInterval) clearInterval(etaTimerInterval);
+        return;
+    }
+
+    const alert = activeAlerts[0]; // Active departure alert
+    const targetInfo = alert.target_vehicle_plate ? `(Plaka: ${alert.target_vehicle_plate})` : "";
+
+    bannerContainer.innerHTML = `
+        <div class="eta-live-alert-banner">
+            <div class="eta-alert-left">
+                <div class="eta-alert-icon">
+                    <i data-lucide="bell-ring"></i>
+                </div>
+                <div>
+                    <div class="eta-alert-title">${t("etaActiveAlertTitle")} · Spot ${alert.spot_number}</div>
+                    <div class="eta-alert-desc">
+                        ${alert.host_name} (Daire ${alert.host_flat_number}) yola çıktı! Lütfen park yerini boşaltın. ${targetInfo}
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                <div style="text-align: right;">
+                    <div style="font-size: 0.7rem; color: #94a3b8; font-weight: 600;">${t("etaBufferCountdown")}</div>
+                    <div class="eta-countdown-badge" id="etaCountdownTimer">--:--</div>
+                </div>
+
+                ${alert.alternative_suggestions && alert.alternative_suggestions.length > 0 ? `
+                    <button class="filter-btn" style="background: #3b82f6; border: none; color: #fff; font-weight: 600;" onclick="window.showAlternativeSpotsModal('${alert.id}')">
+                        ${t("viewAlternativesBtn")}
+                    </button>
+                ` : ''}
+
+                <button class="filter-btn active" style="background: #10b981; border: none; color: #fff; font-weight: 600;" onclick="window.handleAcknowledgeAndRelease('${alert.id}', '${alert.spot_id}')">
+                    ${t("releaseSpotNowBtn")}
+                </button>
+            </div>
+        </div>
+    `;
+
+    if (window.lucide) {
+        window.lucide.createIcons();
+    }
+
+    startCountdownTimer(new Date(alert.expected_arrival));
+}
+
+function startCountdownTimer(targetTime) {
+    if (etaTimerInterval) clearInterval(etaTimerInterval);
+
+    function update() {
+        const timerEl = document.getElementById("etaCountdownTimer");
+        if (!timerEl) return;
+
+        const now = new Date().getTime();
+        const distance = targetTime.getTime() - now;
+
+        if (distance <= 0) {
+            timerEl.textContent = "00:00 (Varıldı)";
+            timerEl.style.color = "#f43f5e";
+            clearInterval(etaTimerInterval);
+            return;
+        }
+
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+        timerEl.textContent = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+    }
+
+    update();
+    etaTimerInterval = setInterval(update, 1000);
+}
+
+window.submitEtaBroadcast = async function(e) {
+    e.preventDefault();
+    const minutes = parseInt(document.getElementById("etaMinutesInput").value, 10);
+
+    try {
+        const res = await fetch("/api/eta/broadcast", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                spot_id: "spot-a-01", // Ahmet Yılmaz's assigned spot
+                minutes_remaining: minutes,
+                host_name: "Ahmet Yılmaz",
+                note: "İşten çıktım, eve doğru geliyorum."
+            })
+        });
+
+        if (!res.ok) throw new Error("ETA bildirimi başlatılamadı.");
+
+        document.getElementById("etaModalBackdrop").classList.remove("active");
+        await fetchActiveAlerts();
+    } catch (err) {
+        alert(err.message);
+    }
+};
+
+window.handleAcknowledgeAndRelease = async function(alertId, spotId) {
+    try {
+        // Resolve ETA alert
+        await fetch(`/api/eta/${alertId}/resolve`, { method: "POST" });
+        
+        // Find if there is an active booking on this spot and complete it
+        const booking = activeBookings.find(b => b.spot_id === spotId);
+        if (booking) {
+            await fetch(`/api/bookings/${booking.id}/complete`, { method: "POST" });
+        }
+
+        await fetchSpots();
+        await fetchComplexStats();
+        await fetchActiveBookings();
+        await fetchActiveAlerts();
+    } catch (err) {
+        alert(err.message);
+    }
+};
+
+window.showAlternativeSpotsModal = function(alertId) {
+    const alert = activeAlerts.find(a => a.id === alertId);
+    if (!alert || !alert.alternative_suggestions) return;
+
+    const listEl = document.getElementById("alternativesList");
+    const modalBackdrop = document.getElementById("alternativesModalBackdrop");
+
+    listEl.innerHTML = alert.alternative_suggestions.map(s => `
+        <div style="background:#0b0f17; border:1px solid #232f48; border-radius:8px; padding:0.85rem; margin-bottom:0.6rem; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <div style="font-weight:700; color:#fff; font-size:0.9rem;">
+                    Spot ${s.spot_number} (${s.block} Blok · Daire ${s.flat_number})
+                </div>
+                <div style="font-size:0.75rem; color:#94a3b8; margin-top:0.2rem;">
+                    Sakin: <strong style="color:#e2e8f0;">${s.owner_name}</strong> ${s.has_ev_charger ? '· ⚡ EV Wallbox Var' : ''}
+                </div>
+            </div>
+            <button class="filter-btn active" style="background:#10b981; border:none; color:#fff; font-size:0.75rem; font-weight:600;" onclick="window.swapToAlternativeSpot('${s.spot_id}', '${alert.id}')">
+                Bu Yere Geç ➔
+            </button>
+        </div>
+    `).join("");
+
+    modalBackdrop.classList.add("active");
+};
+
+window.swapToAlternativeSpot = async function(newSpotId, alertId) {
+    try {
+        // Create new booking on the new spot
+        await fetch("/api/bookings", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                spot_id: newSpotId,
+                booking_type: "second_car",
+                vehicle_plate: "34 DNZ 102",
+                driver_name: "Deniz Polat (Yer Değiştirildi)",
+                host_flat_number: 10,
+                duration_hours: 4
+            })
+        });
+
+        // Resolve previous alert
+        await fetch(`/api/eta/${alertId}/resolve`, { method: "POST" });
+
+        document.getElementById("alternativesModalBackdrop").classList.remove("active");
+        await fetchSpots();
+        await fetchComplexStats();
+        await fetchActiveBookings();
+        await fetchActiveAlerts();
+    } catch (err) {
+        alert(err.message);
+    }
+};
 
 window.handleSpotClick = function(spotId) {
     const spot = allSpots.find(s => s.id === spotId);
@@ -210,7 +436,6 @@ window.submitBooking = async function(e, spotId, bookingType) {
             modalContent.innerHTML = renderDigitalPassCardHtml(booking);
         }
 
-        // Refresh spots & stats in background
         await fetchSpots();
         await fetchComplexStats();
         await fetchActiveBookings();
@@ -222,7 +447,6 @@ window.submitBooking = async function(e, spotId, bookingType) {
 window.handleReleaseActiveSpot = async function(spotId) {
     const activeBooking = activeBookings.find(b => b.spot_id === spotId);
     if (!activeBooking) {
-        // Find by spot in current active
         const res = await fetch("/api/bookings");
         const list = await res.json();
         const found = list.find(b => b.spot_id === spotId && b.status === "active");

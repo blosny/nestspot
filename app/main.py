@@ -6,7 +6,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
-from app.routers import bookings, security, spots
+from app.routers import bookings, eta, security, spots
 
 # Create FastAPI application instance
 app = FastAPI(
@@ -21,6 +21,7 @@ app = FastAPI(
 app.include_router(spots.router)
 app.include_router(bookings.router)
 app.include_router(security.router)
+app.include_router(eta.router)
 
 # Enable CORS for modern client flexibility
 app.add_middleware(

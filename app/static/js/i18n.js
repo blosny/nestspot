@@ -24,6 +24,7 @@ const TRANSLATIONS = {
         drivewayAisle: "DRIVEWAY & ENTRY AISLE",
         securityGateBtn: "Security Gate Lookup",
         myActiveBookings: "Active Passes",
+        iAmHeadedHomeBtn: "Headed Home (ETA)",
         spotTitle: "Spot",
         residentOwner: "Resident Owner",
         statusLabel: "Status",
@@ -59,6 +60,16 @@ const TRANSLATIONS = {
         statusGuest: "Guest Permit",
         statusVacation: "Vacation (Free)",
         noMatchingSpots: "No matching spots found.",
+        etaModalTitle: "Resident Departure / Headed Home",
+        etaModalDesc: "Notify the neighbor currently using your spot with your live ETA.",
+        etaMinutesLabel: "Estimated Arrival Time",
+        broadcastEtaBtn: "Broadcast Live Departure Alert",
+        etaActiveAlertTitle: "🚨 SPOT OWNER IS RETURNING HOME",
+        etaBufferCountdown: "Departure Buffer Remaining",
+        viewAlternativesBtn: "View Alternative Spots",
+        releaseSpotNowBtn: "Release Spot & Vacate",
+        suggestedAlternativeTitle: "Nearby Free Alternative Spots",
+        alertDismissed: "ETA alert acknowledged.",
     },
     tr: {
         brandSubtitle: "Aura Park Evleri",
@@ -81,6 +92,7 @@ const TRANSLATIONS = {
         drivewayAisle: "GİRİŞ & ANA OTOPARK YOLU",
         securityGateBtn: "Güvenlik Plaka Sorgu",
         myActiveBookings: "Aktif İzinler",
+        iAmHeadedHomeBtn: "Eve Dönüyorum (ETA)",
         spotTitle: "Park Alanı",
         residentOwner: "Daire Sakini",
         statusLabel: "Durum",
@@ -116,6 +128,16 @@ const TRANSLATIONS = {
         statusGuest: "Misafir İzni",
         statusVacation: "Tatilde (Boş)",
         noMatchingSpots: "Eşleşen park yeri bulunamadı.",
+        etaModalTitle: "İşten Çıkış / Eve Dönüş Bildirimi",
+        etaModalDesc: "Park yerinizi kullanan komşunuza nazikçe yer açması için tahmini varış sürenizi iletin.",
+        etaMinutesLabel: "Tahmini Varış Süresi",
+        broadcastEtaBtn: "Canlı Bildirimi Başlat",
+        etaActiveAlertTitle: "🚨 EV SAHİBİ DÖNÜŞ YOLUNDA",
+        etaBufferCountdown: "Kalan Boşaltma Süresi",
+        viewAlternativesBtn: "Alternatif Boş Yerleri Gör",
+        releaseSpotNowBtn: "Yeri Boşalt & Çıkış Yap",
+        suggestedAlternativeTitle: "Önerilen Alternatif Boş Yerler",
+        alertDismissed: "Bildirim onaylandı.",
     }
 };
 
@@ -133,7 +155,6 @@ function t(key) {
 }
 
 function applyTranslations() {
-    // Update language switch button states
     const trBtn = document.getElementById("langTrBtn");
     const enBtn = document.getElementById("langEnBtn");
     if (trBtn && enBtn) {
@@ -146,7 +167,6 @@ function applyTranslations() {
         }
     }
 
-    // Static page elements
     const elementsWithI18n = document.querySelectorAll("[data-i18n]");
     elementsWithI18n.forEach(el => {
         const key = el.getAttribute("data-i18n");
@@ -163,7 +183,7 @@ function applyTranslations() {
         }
     });
 
-    // Re-render UI components if data is loaded
     if (typeof fetchComplexStats === "function") fetchComplexStats();
     if (typeof fetchSpots === "function") fetchSpots();
+    if (typeof fetchActiveAlerts === "function") fetchActiveAlerts();
 }
