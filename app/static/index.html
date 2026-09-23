@@ -44,8 +44,8 @@
                 </div>
 
                 <!-- ETA Departure Broadcast Button -->
-                <button class="btn-action-pill" id="headedHomeBtn" style="border-color: rgba(245, 158, 11, 0.4); color: #fbbf24;">
-                    <i data-lucide="navigation" style="color: #fbbf24;"></i>
+                <button class="btn-action-pill btn-headed-home" id="headedHomeBtn">
+                    <i data-lucide="navigation"></i>
                     <span data-i18n="iAmHeadedHomeBtn">Eve Dönüyorum (ETA)</span>
                 </button>
 
@@ -153,32 +153,29 @@
             <button class="modal-close-btn" id="closeEtaModalBtn">
                 <i data-lucide="x"></i>
             </button>
-            <div style="margin-bottom: 1rem;">
-                <h3 style="font-size: 1.15rem; font-weight: 700; color: #fff;" data-i18n="etaModalTitle">İşten Çıkış / Eve Dönüş Bildirimi</h3>
-                <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 0.2rem;" data-i18n="etaModalDesc">Park yerinizi kullanan komşunuza nazikçe yer açması için tahmini varış sürenizi iletin.</p>
+            <div class="modal-intro">
+                <h3 class="modal-heading" data-i18n="etaModalTitle">İşten Çıkış / Eve Dönüş Bildirimi</h3>
+                <p class="muted-copy" data-i18n="etaModalDesc">Park yerinizi kullanan komşunuza nazikçe yer açması için tahmini varış sürenizi iletin.</p>
             </div>
-            
             <form id="etaBroadcastForm" onsubmit="window.submitEtaBroadcast(event)">
                 <div class="form-group">
                     <label class="form-label" data-i18n="etaMinutesLabel">Tahmini Varış Süresi</label>
-                    <select id="etaMinutesInput" class="form-input" style="background:#0b0f17;">
-                        <option value="15">15 Dakika (Yakın Mesafe)</option>
-                        <option value="20" selected>20 Dakika (Standart Dönüş)</option>
-                        <option value="30">30 Dakika (Trafik Var)</option>
-                        <option value="45">45 Dakika (Uzak Mesafe)</option>
+                    <select id="etaMinutesInput" class="form-input">
+                        <option value="15" data-i18n="etaMin15">15 dakika (yakın mesafe)</option>
+                        <option value="20" selected data-i18n="etaMin20">20 dakika (standart dönüş)</option>
+                        <option value="30" data-i18n="etaMin30">30 dakika (trafik var)</option>
+                        <option value="45" data-i18n="etaMin45">45 dakika (uzak mesafe)</option>
                     </select>
                 </div>
-
                 <div class="form-group">
-                    <label class="form-label">Sizin Park Yeriniz</label>
-                    <input type="text" class="form-input" value="Spot A-01 (A Blok · Daire 1 - Ahmet Yılmaz)" disabled style="opacity: 0.7;">
+                    <label class="form-label" data-i18n="yourSpotLabel">Sizin park yeriniz</label>
+                    <input type="text" class="form-input is-disabled" value="Spot A-01 (A Blok · Daire 1 - Ahmet Yılmaz)" disabled>
                 </div>
-
-                <div style="display:flex; gap:0.5rem; margin-top:1.25rem;">
-                    <button type="button" class="filter-btn" style="flex:1; justify-content:center;" onclick="document.getElementById('etaModalBackdrop').classList.remove('active')">
+                <div class="action-row action-row-top">
+                    <button type="button" class="filter-btn btn-flex" onclick="closeModal('etaModalBackdrop')">
                         <span data-i18n="cancelBtn">İptal</span>
                     </button>
-                    <button type="submit" class="filter-btn active" style="flex:1.2; justify-content:center; background:#f59e0b; border:none; color:#000; font-weight:700;">
+                    <button type="submit" class="btn-solid btn-eta btn-flex-wide">
                         <span data-i18n="broadcastEtaBtn">Canlı Bildirimi Başlat</span>
                     </button>
                 </div>
@@ -192,13 +189,13 @@
             <button class="modal-close-btn" id="closeSecurityModalBtn">
                 <i data-lucide="x"></i>
             </button>
-            <div style="margin-bottom: 1rem;">
-                <h3 style="font-size: 1.15rem; font-weight: 700; color: #fff;" data-i18n="securitySearchTitle">Site Güvenliği Plaka Doğrulama</h3>
-                <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 0.2rem;">Girişteki araç plakasını yazarak anında izin kontrolü yapın.</p>
+            <div class="modal-intro">
+                <h3 class="modal-heading" data-i18n="securitySearchTitle">Site Güvenliği Plaka Doğrulama</h3>
+                <p class="muted-copy" data-i18n="securitySearchHint">Girişteki araç plakasını yazarak anında izin kontrolü yapın.</p>
             </div>
-            <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
-                <input type="text" id="gatePlateInput" placeholder="Örn: 34 GST 789 veya 34 DNZ 102" style="flex:1; padding: 0.55rem 0.85rem; background: #0b0f17; border: 1px solid #232f48; border-radius: 8px; color:#fff; font-family: monospace; text-transform: uppercase;">
-                <button class="filter-btn active" style="background:#3b82f6; border:none; color:#fff; font-weight:600;" id="verifyPlateBtn" data-i18n="securityVerifyBtn">İzni Sorgula</button>
+            <div class="gate-row">
+                <input type="text" id="gatePlateInput" class="form-input input-plate gate-input" data-i18n-placeholder="securitySearchPlaceholder" placeholder="Araç plakasını girin (örn. 34 ABC 123)...">
+                <button class="btn-solid btn-info" id="verifyPlateBtn" data-i18n="securityVerifyBtn">İzni Sorgula</button>
             </div>
             <div id="securityVerificationResult"></div>
         </div>
@@ -210,10 +207,10 @@
             <button class="modal-close-btn" id="closeActivePermitsModalBtn">
                 <i data-lucide="x"></i>
             </button>
-            <div style="margin-bottom: 1rem;">
-                <h3 style="font-size: 1.15rem; font-weight: 700; color: #fff;" data-i18n="activePermitsTitle">Aktif Rezervasyonlar ve Misafir Kartları</h3>
+            <div class="modal-intro">
+                <h3 class="modal-heading" data-i18n="activePermitsTitle">Aktif Rezervasyonlar ve Misafir Kartları</h3>
             </div>
-            <div id="activePermitsList" style="max-height: 380px; overflow-y: auto;"></div>
+            <div id="activePermitsList" class="scroll-list"></div>
         </div>
     </div>
 
@@ -223,9 +220,9 @@
             <button class="modal-close-btn" id="closeAlternativesModalBtn">
                 <i data-lucide="x"></i>
             </button>
-            <div style="margin-bottom: 1rem;">
-                <h3 style="font-size: 1.15rem; font-weight: 700; color: #fff;" data-i18n="suggestedAlternativeTitle">Önerilen Alternatif Boş Yerler</h3>
-                <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 0.2rem;">Aracınızı hemen şu an müsait olan komşu yerlerine çekebilirsiniz:</p>
+            <div class="modal-intro">
+                <h3 class="modal-heading" data-i18n="suggestedAlternativeTitle">Önerilen Alternatif Boş Yerler</h3>
+                <p class="muted-copy" data-i18n="alternativesHint">Aracınızı hemen şu an müsait olan komşu yerlerine çekebilirsiniz:</p>
             </div>
             <div id="alternativesList"></div>
         </div>
@@ -233,6 +230,8 @@
 
     <!-- Scripts -->
     <script src="/static/js/i18n.js"></script>
+    <script src="/static/js/ui.js"></script>
+    <script src="/static/js/api.js"></script>
     <script src="/static/js/parking-grid.js"></script>
     <script src="/static/js/app.js"></script>
 </body>
