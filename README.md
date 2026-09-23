@@ -25,6 +25,22 @@ A residential and neighborhood parking spot sharing platform designed for apartm
 
 ---
 
+## 📸 Visual Walkthrough & Screenshots
+
+| 1. Live Parking Deck Overview | 2. Spot Details & Away Schedule |
+|:---:|:---:|
+| ![Dashboard Overview](docs/screenshots/01_dashboard_overview.png) | ![Spot Details Modal](docs/screenshots/02_spot_modal_details.png) |
+
+| 3. Digital Guest Pass Permit (`NST-XXXX`) | 4. Security Gate Plate Lookup |
+|:---:|:---:|
+| ![Digital Permit Card](docs/screenshots/03_digital_permit_card.png) | ![Security Gate Verification](docs/screenshots/04_security_gate_verification.png) |
+
+| 5. Live ETA Return Alert & Buffer Countdown | 6. Active Permits Management |
+|:---:|:---:|
+| ![Live ETA Banner](docs/screenshots/05_live_eta_countdown_banner.png) | ![Active Permits List](docs/screenshots/06_active_permits_list.png) |
+
+---
+
 ## Tech Stack
 
 - **Backend:** Python 3.13, FastAPI, Pydantic v2, Uvicorn
