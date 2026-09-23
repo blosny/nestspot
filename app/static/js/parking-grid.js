@@ -1,14 +1,14 @@
 /**
- * NestSpot – parking grid, spot modal, booking form, digital pass.
+ * NestSpot – Clean, intuitive Linear/Apple style parking grid & card renderers.
  */
 
 function getStatusMeta(status) {
     const map = {
-        available: { label: t("statusFree"), pillClass: "pill-available", dotClass: "ind-available" },
-        occupied_by_owner: { label: t("statusOwner"), pillClass: "pill-owner", dotClass: "ind-owner" },
-        reserved_by_neighbor: { label: t("statusNeighbor"), pillClass: "pill-neighbor", dotClass: "ind-neighbor" },
-        reserved_by_guest: { label: t("statusGuest"), pillClass: "pill-guest", dotClass: "ind-guest" },
-        away_vacation: { label: t("statusVacation"), pillClass: "pill-vacation", dotClass: "ind-available" },
+        available: { label: t("statusFree"), badgeClass: "badge-available", actionLabel: t("parkSecondCarBtn") },
+        occupied_by_owner: { label: t("statusOwner"), badgeClass: "badge-owner", actionLabel: t("detailsBtn") || "Detay" },
+        reserved_by_neighbor: { label: t("statusNeighbor"), badgeClass: "badge-neighbor", actionLabel: t("releaseBtn") },
+        reserved_by_guest: { label: t("statusGuest"), badgeClass: "badge-guest", actionLabel: t("releaseBtn") },
+        away_vacation: { label: t("statusVacation"), badgeClass: "badge-vacation", actionLabel: t("guestPassBtn") },
     };
     return map[status] || map.available;
 }
@@ -58,11 +58,11 @@ function renderParkingGrid(spots, activeBlock = "ALL", activeFilter = "ALL", sea
     const showB = activeBlock !== "A";
     if (blockASection) blockASection.style.display = showA ? "block" : "none";
     if (blockBSection) blockBSection.style.display = showB ? "block" : "none";
-    if (drivewayDivider) drivewayDivider.style.display = showA && showB ? "block" : "none";
+    if (drivewayDivider) drivewayDivider.style.display = showA && showB ? "flex" : "none";
 
     const spotsA = filtered.filter((s) => s.block === "A");
     const spotsB = filtered.filter((s) => s.block === "B");
-    const empty = `<div class="empty-state">${t("noMatchingSpots")}</div>`;
+    const empty = `<div class="empty-state" style="padding: 1.5rem; color: var(--text-muted); font-size: 0.85rem;">${t("noMatchingSpots")}</div>`;
 
     blockAGrid.innerHTML = spotsA.length ? spotsA.map(createCleanSpotCard).join("") : empty;
     blockBGrid.innerHTML = spotsB.length ? spotsB.map(createCleanSpotCard).join("") : empty;
@@ -71,29 +71,42 @@ function renderParkingGrid(spots, activeBlock = "ALL", activeFilter = "ALL", sea
 
 function createCleanSpotCard(spot) {
     const statusMeta = getStatusMeta(spot.status);
-    const freeClass = isSpotFree(spot) ? "status-available" : "";
-    const plate = spot.current_vehicle_plate
-        ? `<span class="spot-plate">${escapeHtml(spot.current_vehicle_plate)}</span>`
-        : "";
-    const ev = spot.has_ev_charger
-        ? `<span class="ev-tag" title="${escapeHtml(spot.ev_charger_power || t("evWallbox"))}">
-                <i data-lucide="zap" class="ev-icon"></i> EV
-           </span>`
+    const isFree = isSpotFree(spot);
+    const freeCardClass = isFree ? "is-available" : "";
+
+    const plateMarkup = spot.current_vehicle_plate
+        ? `<span class="plate-tag">${escapeHtml(spot.current_vehicle_plate)}</span>`
+        : `<span style="font-size: 0.7rem; color: var(--text-dim);">${isFree ? (t("readyToPark") || "Kullanıma hazır") : (t("noVehicle") || "Araç yok")}</span>`;
+
+    const evMarkup = spot.has_ev_charger
+        ? `<div class="ev-badge"><i data-lucide="zap" style="width: 10px; height: 10px;"></i> EV Şarj</div>`
         : "";
 
+    const actionText = isFree
+        ? (t("parkSecondCarBtn") || "Park Et")
+        : (isSpotReserved(spot) ? (t("releaseBtn") || "İzni Bitir") : (t("viewDetailsBtn") || "Detay Gör"));
+
     return `
-        <div class="spot-card ${freeClass}" onclick="window.handleSpotClick('${escapeHtml(spot.id)}')">
-            <div class="spot-header">
-                <span class="spot-id">${escapeHtml(spot.spot_number)}</span>
-                ${ev}
+        <div class="spot-card ${freeCardClass}" onclick="window.handleSpotClick('${escapeHtml(spot.id)}')">
+            <div class="spot-card-top">
+                <span class="spot-num-badge">${escapeHtml(spot.spot_number)}</span>
+                <span class="spot-flat-label">${t("flatShort")} ${spot.flat_number}</span>
             </div>
-            <div class="spot-status-pill ${statusMeta.pillClass}">
-                <span class="legend-dot ${statusMeta.dotClass}"></span>
-                <span>${statusMeta.label}</span>
+
+            <div class="spot-badge ${statusMeta.badgeClass}">
+                ${statusMeta.label}
             </div>
-            <div class="spot-footer">
-                <span class="spot-owner">${escapeHtml("D:" + spot.flat_number + " · " + spot.owner_name.split(" ")[0])}</span>
-                ${plate}
+
+            <div class="spot-details">
+                <span class="resident-text">${escapeHtml(spot.owner_name)}</span>
+                ${plateMarkup}
+            </div>
+
+            ${evMarkup}
+
+            <div class="spot-action-footer">
+                <span>${actionText}</span>
+                <i data-lucide="chevron-right" style="width: 14px; height: 14px;"></i>
             </div>
         </div>
     `;
@@ -106,9 +119,9 @@ function renderSchedule(spot) {
     return spot.available_windows
         .map(
             (w) => `
-        <div class="schedule-card">
-            <div class="schedule-title">${escapeHtml(w.title)} (${escapeHtml(w.start_time)} – ${escapeHtml(w.end_time)})</div>
-            <div class="schedule-days">${escapeHtml(w.days.join(", "))}</div>
+        <div style="background: var(--bg-surface-elevated); padding: 0.65rem 0.85rem; border-radius: var(--radius-md); margin-bottom: 0.45rem; border: 1px solid var(--border-subtle);">
+            <div style="font-weight: 700; color: var(--text-primary); font-size: 0.82rem;">${escapeHtml(w.title)} (${escapeHtml(w.start_time)} – ${escapeHtml(w.end_time)})</div>
+            <div style="color: var(--text-muted); font-size: 0.74rem;">${escapeHtml(w.days.join(", "))}</div>
         </div>`
         )
         .join("");
@@ -117,61 +130,59 @@ function renderSchedule(spot) {
 function renderSpotActions(spot) {
     if (isSpotFree(spot)) {
         return `
-            <div class="action-row">
-                <button type="button" class="btn-solid btn-success" onclick="window.showBookingForm('${escapeHtml(spot.id)}', 'second_car')">
+            <div class="modal-action-row">
+                <button type="button" class="btn-cancel" style="flex: 1;" onclick="window.showBookingForm('${escapeHtml(spot.id)}', 'second_car')">
                     ${t("parkSecondCarBtn")}
                 </button>
-                <button type="button" class="btn-solid btn-info" onclick="window.showBookingForm('${escapeHtml(spot.id)}', 'guest')">
+                <button type="button" class="btn-primary-orange" style="flex: 1;" onclick="window.showBookingForm('${escapeHtml(spot.id)}', 'guest')">
                     ${t("guestPassBtn")}
                 </button>
             </div>
-            <button type="button" class="filter-btn btn-full" onclick="closeModal('spotModalBackdrop')">${t("closeBtn")}</button>
+            <button type="button" class="btn-cancel" style="width: 100%; margin-top: 0.65rem;" onclick="closeModal('spotModalBackdrop')">${t("closeBtn")}</button>
         `;
     }
     if (isSpotReserved(spot)) {
         return `
-            <div class="action-row">
-                <button type="button" class="btn-solid btn-danger" onclick="window.handleReleaseActiveSpot('${escapeHtml(spot.id)}')">
+            <div class="modal-action-row">
+                <button type="button" class="btn-primary-orange" style="background: #ef4444; flex: 1;" onclick="window.handleReleaseActiveSpot('${escapeHtml(spot.id)}')">
                     ${t("releaseBtn")}
                 </button>
-                <button type="button" class="filter-btn btn-narrow" onclick="closeModal('spotModalBackdrop')">${t("closeBtn")}</button>
+                <button type="button" class="btn-cancel" onclick="closeModal('spotModalBackdrop')">${t("closeBtn")}</button>
             </div>
         `;
     }
-    return `<button type="button" class="filter-btn btn-full" onclick="closeModal('spotModalBackdrop')">${t("closeBtn")}</button>`;
+    return `<button type="button" class="btn-cancel" style="width: 100%; margin-top: 0.75rem;" onclick="closeModal('spotModalBackdrop')">${t("closeBtn")}</button>`;
 }
 
 function renderCleanSpotModal(spot) {
     const statusMeta = getStatusMeta(spot.status);
     const ev = spot.has_ev_charger
-        ? `<span class="ev-tag ev-tag-lg">⚡ ${escapeHtml(spot.ev_charger_power || "Wallbox")}</span>`
+        ? `<div class="ev-badge" style="font-size: 0.75rem; padding: 2px 7px;">⚡ ${escapeHtml(spot.ev_charger_power || "Wallbox Şarj")}</div>`
         : "";
     const plate = spot.current_vehicle_plate
-        ? `<span class="plate-chip">${escapeHtml(spot.current_vehicle_plate)}</span>`
+        ? `<div style="font-size: 0.85rem; font-weight: 700; color: #f8fafc; margin-top: 4px;">Plaka: ${escapeHtml(spot.current_vehicle_plate)}</div>`
         : "";
 
     return `
         <div class="modal-intro">
-            <div class="modal-intro-row">
-                <h3 class="modal-heading">${t("spotTitle")} ${escapeHtml(spot.spot_number)}</h3>
-                <span class="chip-muted">${escapeHtml(spot.block)} ${t("blockFlat")} · ${t("flatShort")} ${spot.flat_number}</span>
-            </div>
-            <div class="muted-copy">${t("residentOwner")}: <strong class="text-strong">${escapeHtml(spot.owner_name)}</strong></div>
+            <h3 class="modal-heading">${t("spotTitle")} ${escapeHtml(spot.spot_number)}</h3>
+            <p class="muted-copy">${escapeHtml(spot.block)} ${t("blockFlat")} · ${t("flatShort")} ${spot.flat_number} (${escapeHtml(spot.owner_name)})</p>
         </div>
-        <div class="info-panel">
-            <div class="eyebrow">${t("statusLabel")}</div>
-            <div class="pill-row">
-                <span class="spot-status-pill ${statusMeta.pillClass} no-margin">
-                    <span class="legend-dot ${statusMeta.dotClass}"></span> ${statusMeta.label}
-                </span>
+        
+        <div style="background: var(--bg-surface-elevated); padding: 0.85rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle); margin-bottom: 1rem;">
+            <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); margin-bottom: 4px;">DURUM BİLGİSİ</div>
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span class="spot-badge ${statusMeta.badgeClass}">${statusMeta.label}</span>
                 ${ev}
-                ${plate}
             </div>
+            ${plate}
         </div>
-        <div class="schedule-block">
-            <div class="eyebrow">${t("awaySchedule")}</div>
+
+        <div style="margin-bottom: 1rem;">
+            <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">MÜSAİTLİK PLANI</div>
             ${renderSchedule(spot)}
         </div>
+
         <div id="bookingActionContainer">${renderSpotActions(spot)}</div>
     `;
 }
@@ -189,7 +200,7 @@ function renderBookingFormHtml(spot, bookingType) {
         <form id="spotBookingForm" onsubmit="window.submitBooking(event, '${escapeHtml(spot.id)}', '${escapeHtml(bookingType)}')">
             <div class="form-group">
                 <label class="form-label">${t("vehiclePlate")}</label>
-                <input type="text" id="formPlate" required class="form-input input-plate" value="${defaultPlate}">
+                <input type="text" id="formPlate" required class="form-input" value="${defaultPlate}">
             </div>
             <div class="form-group">
                 <label class="form-label">${t("driverName")}</label>
@@ -197,7 +208,7 @@ function renderBookingFormHtml(spot, bookingType) {
             </div>
             <div class="form-group">
                 <label class="form-label">${t("durationHours")}</label>
-                <select id="formDuration" class="form-input">
+                <select id="formDuration" class="form-select">
                     <option value="2">${t("hours2")}</option>
                     <option value="4" selected>${t("hours4")}</option>
                     <option value="8">${t("hours8")}</option>
@@ -208,9 +219,9 @@ function renderBookingFormHtml(spot, bookingType) {
                 <label class="form-label">${t("notesOptional")}</label>
                 <input type="text" id="formNotes" class="form-input" placeholder="${isGuest ? t("guestNotePh") : t("secondCarNotePh")}">
             </div>
-            <div class="action-row action-row-top">
-                <button type="button" class="filter-btn btn-flex" onclick="window.handleSpotClick('${escapeHtml(spot.id)}')">${t("cancelBtn")}</button>
-                <button type="submit" class="btn-solid btn-success btn-flex">${t("confirmBtn")}</button>
+            <div class="modal-action-row">
+                <button type="button" class="btn-cancel" onclick="window.handleSpotClick('${escapeHtml(spot.id)}')">${t("cancelBtn")}</button>
+                <button type="submit" class="btn-primary-orange">${t("confirmBtn")}</button>
             </div>
         </form>
     `;
@@ -222,20 +233,23 @@ function renderDigitalPassCardHtml(booking) {
         <div class="digital-pass-card">
             <div class="pass-header">
                 <div>
-                    <div class="pass-kicker">${t("nestspotPermit")}</div>
-                    <div class="pass-spot">${t("spotTitle")} ${escapeHtml(booking.spot_number)} (${escapeHtml(booking.block)} ${t("blockFlat")})</div>
+                    <div style="font-size: 0.72rem; opacity: 0.9;">DİJİTAL OTOPARK İZNİ</div>
+                    <div style="font-size: 1.25rem; font-weight: 800;">YER ${escapeHtml(booking.spot_number)}</div>
                 </div>
                 <div class="pass-code-badge">${escapeHtml(booking.permit_code)}</div>
             </div>
-            <div class="pass-plate">${escapeHtml(booking.vehicle_plate)}</div>
-            <div class="pass-meta">
-                <div>${t("driverName")}: <strong class="text-strong block">${escapeHtml(booking.driver_name)}</strong></div>
-                <div>${t("validUntil")}: <strong class="text-success block">${until}</strong></div>
+            <div class="pass-plate">
+                ${escapeHtml(booking.vehicle_plate)}
             </div>
-            <div class="pass-ok">✓ ${t("gateVerified")} (${t("flatShort")} ${booking.host_flat_number})</div>
+            <div class="pass-meta">
+                <div>Sürücü: <strong>${escapeHtml(booking.driver_name)}</strong></div>
+                <div>Geçerlilik: <strong>${until}</strong></div>
+                <div>Ev Sahibi: <strong>Daire ${booking.host_flat_number}</strong></div>
+                <div>Durum: <strong>Aktif İzin</strong></div>
+            </div>
         </div>
-        <div class="action-row action-row-top">
-            <button type="button" class="filter-btn btn-flex" onclick="closeModal('spotModalBackdrop')">${t("closeBtn")}</button>
+        <div class="modal-action-row">
+            <button type="button" class="btn-primary-orange" style="width: 100%;" onclick="closeModal('spotModalBackdrop')">${t("closeBtn")}</button>
         </div>
     `;
 }

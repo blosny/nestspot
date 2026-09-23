@@ -4,11 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NestSpot · Komşu & Misafir Otopark Paylaşımı</title>
-    <meta name="description" content="Site ve apartman sakinleri için tahsisli otopark paylaşım ve misafir izin platformu.">
-    <!-- Google Fonts -->
+    <meta name="description" content="Aura Park Evleri konut sakinleri için akıllı otopark paylaşım ve misafir izin platformu.">
+    <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="/static/css/style.css">
@@ -16,123 +16,141 @@
 </head>
 <body>
     <div class="app-container">
-        <!-- Live Floating ETA Notification Alert -->
+        <!-- Floating Live ETA Alert -->
         <div id="liveEtaAlertContainer"></div>
 
-        <!-- Minimal Header -->
+        <!-- Modern Header -->
         <header class="app-header">
-            <div class="brand">
-                <div class="brand-icon">
-                    <i data-lucide="parking-circle"></i>
+            <div class="header-left">
+                <div class="brand">
+                    <div class="brand-icon">
+                        <i data-lucide="parking-circle"></i>
+                    </div>
+                    <div class="brand-meta">
+                        <span class="brand-title">NestSpot</span>
+                        <span class="brand-subtitle" data-i18n="brandSubtitle">Aura Park Evleri</span>
+                    </div>
                 </div>
-                <div class="brand-info">
-                    <span class="brand-title">NestSpot</span>
-                    <span class="brand-subtitle" data-i18n="brandSubtitle">Aura Park Evleri</span>
+
+                <!-- Live Summary Counter Badge -->
+                <div class="live-counter-pill">
+                    <span class="live-indicator-dot"></span>
+                    <span id="spotsAvailableSummary" class="counter-text">15 / 24 yer boş</span>
                 </div>
             </div>
 
-            <div class="header-search">
-                <i data-lucide="search" class="search-icon"></i>
-                <input type="text" id="spotSearchInput" data-i18n-placeholder="searchPlaceholder" placeholder="Daire, sakin veya plaka ara (örn. A-01, Ahmet, 34)...">
+            <!-- Search Bar -->
+            <div class="header-center">
+                <div class="search-input-wrapper">
+                    <i data-lucide="search" class="search-icon"></i>
+                    <input type="text" id="spotSearchInput" data-i18n-placeholder="searchPlaceholder" placeholder="Daire, sakin veya plaka ara (örn. A-01, Ahmet, 34)...">
+                </div>
             </div>
 
-            <div class="header-actions">
+            <!-- Header Action Controls -->
+            <div class="header-right">
                 <!-- Language Switcher -->
-                <div class="lang-switch">
-                    <button class="lang-btn" id="langTrBtn" onclick="setLanguage('tr')">TR</button>
-                    <button class="lang-btn" id="langEnBtn" onclick="setLanguage('en')">EN</button>
+                <div class="lang-switch-pills">
+                    <button class="lang-pill-btn" id="langTrBtn" onclick="setLanguage('tr')">TR</button>
+                    <button class="lang-pill-btn" id="langEnBtn" onclick="setLanguage('en')">EN</button>
                 </div>
 
-                <!-- ETA Departure Broadcast Button -->
-                <button class="btn-action-pill btn-headed-home" id="headedHomeBtn">
+                <!-- ETA Return Alert Button -->
+                <button class="btn-action btn-eta-primary" id="headedHomeBtn">
                     <i data-lucide="navigation"></i>
                     <span data-i18n="iAmHeadedHomeBtn">Eve Dönüyorum (ETA)</span>
                 </button>
 
                 <!-- Gate Security Button -->
-                <button class="btn-action-pill" id="securityGateBtn">
+                <button class="btn-action btn-secondary" id="securityGateBtn">
                     <i data-lucide="shield-check"></i>
-                    <span data-i18n="securityGateBtn">Güvenlik Plaka Sorgu</span>
+                    <span data-i18n="securityGateBtn">Güvenlik Sorgu</span>
                 </button>
 
                 <!-- Active Passes Button -->
-                <button class="btn-action-pill" id="activePassesBtn">
+                <button class="btn-action btn-secondary" id="activePassesBtn">
                     <i data-lucide="ticket"></i>
                     <span data-i18n="myActiveBookings">Aktif İzinler</span>
                 </button>
 
-                <!-- Live Summary Pill -->
-                <div class="site-badge">
-                    <span class="live-dot"></span>
-                    <span id="spotsAvailableSummary">--</span>
-                </div>
-
-                <div class="profile-chip">
-                    <span class="profile-avatar">AY</span>
-                    <span class="profile-name">Ahmet Y. (A-1)</span>
+                <!-- Current User Chip -->
+                <div class="user-chip" title="Giriş Yapan Sakin">
+                    <span class="user-avatar">AY</span>
+                    <span class="user-name">Ahmet Y. (A-1)</span>
                 </div>
             </div>
         </header>
 
-        <!-- Compact Filter Bar -->
-        <div class="toolbar">
+        <!-- Main Toolbar / Filter Bar -->
+        <div class="deck-toolbar">
             <div class="toolbar-left">
-                <!-- Segment Control: Block Switcher -->
-                <div class="segment-control">
-                    <button class="segment-btn active" data-block="ALL" data-i18n="allBlocks">Tüm Bloklar</button>
-                    <button class="segment-btn" data-block="A" data-i18n="blockA">A Blok</button>
-                    <button class="segment-btn" data-block="B" data-i18n="blockB">B Blok</button>
+                <!-- Block Switcher Segment Tabs -->
+                <div class="segment-tabs">
+                    <button class="segment-tab active" data-block="ALL" data-i18n="allBlocks">Tüm Bloklar</button>
+                    <button class="segment-tab" data-block="A" data-i18n="blockA">A Blok</button>
+                    <button class="segment-tab" data-block="B" data-i18n="blockB">B Blok</button>
                 </div>
 
-                <!-- Status Filter Pills -->
-                <div class="filter-group">
-                    <button class="filter-btn active" data-filter="ALL"><span data-i18n="allSpots">Tümü</span> (24)</button>
-                    <button class="filter-btn" data-filter="AVAILABLE">
-                        <span class="filter-indicator ind-available"></span> <span data-i18n="freeNow">Şu An Boş</span> (<span id="countAvailable">--</span>)
+                <!-- Quick Filter Buttons -->
+                <div class="filter-pills-group">
+                    <button class="filter-pill active" data-filter="ALL">
+                        <span data-i18n="allSpots">Tümü</span> (24)
                     </button>
-                    <button class="filter-btn" data-filter="EV">
-                        <i data-lucide="zap" class="btn-icon"></i> <span data-i18n="evChargers">EV Şarj</span> (<span id="countEv">--</span>)
+                    <button class="filter-pill" data-filter="AVAILABLE">
+                        <span class="status-indicator ind-available"></span>
+                        <span data-i18n="freeNow">Şu An Boş</span> (<span id="countAvailable">--</span>)
                     </button>
-                    <button class="filter-btn" data-filter="VACATION">
+                    <button class="filter-pill" data-filter="EV">
+                        <i data-lucide="zap" class="filter-zap-icon"></i>
+                        <span data-i18n="evChargers">EV Şarj</span> (<span id="countEv">--</span>)
+                    </button>
+                    <button class="filter-pill" data-filter="VACATION">
+                        <span class="status-indicator ind-vacation"></span>
                         <span data-i18n="vacationFilter">Tatilde</span> (<span id="countVacation">--</span>)
                     </button>
                 </div>
             </div>
 
-            <!-- Legend -->
+            <!-- Status Legend -->
             <div class="toolbar-right">
                 <div class="status-legend">
-                    <span class="legend-item"><span class="legend-dot ind-available"></span> <span data-i18n="legendAvailable">Boş</span></span>
-                    <span class="legend-item"><span class="legend-dot ind-owner"></span> <span data-i18n="legendOwner">Ev Sahibi</span></span>
-                    <span class="legend-item"><span class="legend-dot ind-neighbor"></span> <span data-i18n="legendNeighbor">Komşu</span></span>
-                    <span class="legend-item"><span class="legend-dot ind-guest"></span> <span data-i18n="legendGuest">Misafir İzni</span></span>
+                    <div class="legend-item"><span class="legend-dot ind-available"></span> <span data-i18n="legendAvailable">Boş</span></div>
+                    <div class="legend-item"><span class="legend-dot ind-owner"></span> <span data-i18n="legendOwner">Ev Sahibi</span></div>
+                    <div class="legend-item"><span class="legend-dot ind-neighbor"></span> <span data-i18n="legendNeighbor">Komşu (2. Araç)</span></div>
+                    <div class="legend-item"><span class="legend-dot ind-guest"></span> <span data-i18n="legendGuest">Misafir İzni</span></div>
                 </div>
             </div>
         </div>
 
-        <!-- Main Parking Layout -->
+        <!-- Main Parking Deck Grid -->
         <main class="parking-deck">
             <!-- Block A -->
-            <section class="block-section" id="blockASection">
-                <div class="section-title">
-                    <h2 data-i18n="blockA">A Blok</h2>
-                    <span data-i18n="flatsRange">Daireler 1 – 12</span>
+            <section class="block-card-section" id="blockASection">
+                <div class="section-heading-bar">
+                    <div class="heading-title-group">
+                        <h2 data-i18n="blockA">A Blok</h2>
+                        <span class="range-subtext" data-i18n="flatsRange">Daireler 1 – 12</span>
+                    </div>
                 </div>
-                <div class="spots-grid" id="blockAGrid"></div>
+                <div class="deck-spots-grid" id="blockAGrid"></div>
             </section>
 
-            <!-- Driveway Divider -->
-            <div class="driveway-divider" id="drivewayDivider">
+            <!-- Central Road / Driveway -->
+            <div class="deck-driveway" id="drivewayDivider">
+                <span class="driveway-arrow">◄</span>
                 <span data-i18n="drivewayAisle">GİRİŞ & ANA OTOPARK YOLU</span>
+                <span class="driveway-arrow">►</span>
             </div>
 
             <!-- Block B -->
-            <section class="block-section" id="blockBSection">
-                <div class="section-title">
-                    <h2 data-i18n="blockB">B Blok</h2>
-                    <span data-i18n="flatsRange">Daireler 1 – 12</span>
+            <section class="block-card-section" id="blockBSection">
+                <div class="section-heading-bar">
+                    <div class="heading-title-group">
+                        <h2 data-i18n="blockB">B Blok</h2>
+                        <span class="range-subtext" data-i18n="flatsRange">Daireler 1 – 12</span>
+                    </div>
                 </div>
-                <div class="spots-grid" id="blockBGrid"></div>
+                <div class="deck-spots-grid" id="blockBGrid"></div>
             </section>
         </main>
     </div>
@@ -140,7 +158,7 @@
     <!-- General Modal (Spot Details & Reservation Flow) -->
     <div class="modal-backdrop" id="spotModalBackdrop">
         <div class="modal-card">
-            <button class="modal-close-btn" id="closeModalBtn">
+            <button class="modal-close-btn" id="closeModalBtn" aria-label="Kapat">
                 <i data-lucide="x"></i>
             </button>
             <div id="modalContent"></div>
@@ -150,7 +168,7 @@
     <!-- Headed Home / ETA Broadcast Modal -->
     <div class="modal-backdrop" id="etaModalBackdrop">
         <div class="modal-card">
-            <button class="modal-close-btn" id="closeEtaModalBtn">
+            <button class="modal-close-btn" id="closeEtaModalBtn" aria-label="Kapat">
                 <i data-lucide="x"></i>
             </button>
             <div class="modal-intro">
@@ -160,7 +178,7 @@
             <form id="etaBroadcastForm" onsubmit="window.submitEtaBroadcast(event)">
                 <div class="form-group">
                     <label class="form-label" data-i18n="etaMinutesLabel">Tahmini Varış Süresi</label>
-                    <select id="etaMinutesInput" class="form-input">
+                    <select id="etaMinutesInput" class="form-select">
                         <option value="15" data-i18n="etaMin15">15 dakika (yakın mesafe)</option>
                         <option value="20" selected data-i18n="etaMin20">20 dakika (standart dönüş)</option>
                         <option value="30" data-i18n="etaMin30">30 dakika (trafik var)</option>
@@ -171,11 +189,11 @@
                     <label class="form-label" data-i18n="yourSpotLabel">Sizin park yeriniz</label>
                     <input type="text" class="form-input is-disabled" value="Spot A-01 (A Blok · Daire 1 - Ahmet Yılmaz)" disabled>
                 </div>
-                <div class="action-row action-row-top">
-                    <button type="button" class="filter-btn btn-flex" onclick="closeModal('etaModalBackdrop')">
+                <div class="modal-action-row">
+                    <button type="button" class="btn-cancel" onclick="closeModal('etaModalBackdrop')">
                         <span data-i18n="cancelBtn">İptal</span>
                     </button>
-                    <button type="submit" class="btn-solid btn-eta btn-flex-wide">
+                    <button type="submit" class="btn-primary-orange">
                         <span data-i18n="broadcastEtaBtn">Canlı Bildirimi Başlat</span>
                     </button>
                 </div>
@@ -186,16 +204,16 @@
     <!-- Security Gate Modal -->
     <div class="modal-backdrop" id="securityModalBackdrop">
         <div class="modal-card">
-            <button class="modal-close-btn" id="closeSecurityModalBtn">
+            <button class="modal-close-btn" id="closeSecurityModalBtn" aria-label="Kapat">
                 <i data-lucide="x"></i>
             </button>
             <div class="modal-intro">
                 <h3 class="modal-heading" data-i18n="securitySearchTitle">Site Güvenliği Plaka Doğrulama</h3>
                 <p class="muted-copy" data-i18n="securitySearchHint">Girişteki araç plakasını yazarak anında izin kontrolü yapın.</p>
             </div>
-            <div class="gate-row">
-                <input type="text" id="gatePlateInput" class="form-input input-plate gate-input" data-i18n-placeholder="securitySearchPlaceholder" placeholder="Araç plakasını girin (örn. 34 ABC 123)...">
-                <button class="btn-solid btn-info" id="verifyPlateBtn" data-i18n="securityVerifyBtn">İzni Sorgula</button>
+            <div class="gate-search-row">
+                <input type="text" id="gatePlateInput" class="form-input input-plate" data-i18n-placeholder="securitySearchPlaceholder" placeholder="Plaka girin (örn. 34 ABC 123)...">
+                <button class="btn-primary-blue" id="verifyPlateBtn" data-i18n="securityVerifyBtn">İzni Sorgula</button>
             </div>
             <div id="securityVerificationResult"></div>
         </div>
@@ -203,21 +221,21 @@
 
     <!-- Active Permits Modal -->
     <div class="modal-backdrop" id="activePermitsModalBackdrop">
-        <div class="modal-card" style="max-width: 540px;">
-            <button class="modal-close-btn" id="closeActivePermitsModalBtn">
+        <div class="modal-card modal-card-wide">
+            <button class="modal-close-btn" id="closeActivePermitsModalBtn" aria-label="Kapat">
                 <i data-lucide="x"></i>
             </button>
             <div class="modal-intro">
                 <h3 class="modal-heading" data-i18n="activePermitsTitle">Aktif Rezervasyonlar ve Misafir Kartları</h3>
             </div>
-            <div id="activePermitsList" class="scroll-list"></div>
+            <div id="activePermitsList" class="scrollable-permits-list"></div>
         </div>
     </div>
 
     <!-- Alternative Spots Modal -->
     <div class="modal-backdrop" id="alternativesModalBackdrop">
-        <div class="modal-card">
-            <button class="modal-close-btn" id="closeAlternativesModalBtn">
+        <div class="modal-card modal-card-wide">
+            <button class="modal-close-btn" id="closeAlternativesModalBtn" aria-label="Kapat">
                 <i data-lucide="x"></i>
             </button>
             <div class="modal-intro">
