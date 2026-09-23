@@ -30,9 +30,9 @@ jobs:
         run: |
           ruff check .
 
-      - name: Run Pytest Suite
+      - name: Run Pytest Suite with Coverage
         run: |
-          pytest -v --tb=short
+          pytest -v --tb=short --cov=app --cov-report=term-missing --cov-fail-under=90
 
   docker-build-check:
     name: Docker Build Validation
