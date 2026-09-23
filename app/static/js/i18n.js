@@ -98,6 +98,7 @@ const TRANSLATIONS = {
         blockFlat: "Block",
         flatShort: "Flat",
         nestspotPermit: "NESTSPOT PERMIT",
+        viewDetailsBtn: "View Details",
     },
     tr: {
         brandSubtitle: "Aura Park Evleri",
@@ -194,6 +195,7 @@ const TRANSLATIONS = {
         blockFlat: "Blok",
         flatShort: "Daire",
         nestspotPermit: "NESTSPOT İZİN KARTI",
+        viewDetailsBtn: "Detayları Gör",
     }
 };
 
