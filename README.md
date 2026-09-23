@@ -39,18 +39,21 @@ A residential and neighborhood parking spot sharing platform designed for apartm
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `GET` | `/api/spots` | List all parking spots (filterable by block, status, EV) |
+| `GET` | `/api/spots` | List all parking spots (filterable by block, status, EV, vacation) |
 | `GET` | `/api/spots/summary/stats` | Complex-wide parking statistics |
 | `GET` | `/api/spots/{spot_id}` | Detailed spot information and away schedule |
+| `PATCH` | `/api/spots/{spot_id}/availability` | Update vacation mode and recurring away windows |
 | `POST` | `/api/bookings` | Reserve a spot for a second car or visitor |
-| `GET` | `/api/bookings` | List active reservations |
+| `GET` | `/api/bookings` | List reservations (optionally filtered by status) |
+| `GET` | `/api/bookings/{id}` | Retrieve details and digital permit for a booking |
 | `POST` | `/api/bookings/{id}/complete` | Release a reserved spot |
+| `POST` | `/api/bookings/{id}/swap` | Move an active occupant to an alternative free spot |
 | `GET` | `/api/security/verify?plate=...` | Guard lookup for active permits by vehicle plate |
 | `POST` | `/api/eta/broadcast` | Broadcast resident departure with ETA minutes |
 | `GET` | `/api/eta/active` | Retrieve active arrival alerts and countdown buffers |
 | `POST` | `/api/eta/{id}/resolve` | Dismiss or resolve an ETA arrival alert |
 
-Interactive Swagger UI documentation is available at `/docs`.
+Interactive Swagger UI documentation is available at `/docs`. Detailed architectural patterns, diagrams, and state machines are documented in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ---
 
@@ -73,8 +76,8 @@ source .venv/bin/activate
 # Install dependencies
 pip install -r requirements-dev.txt
 
-# Run tests and linter
-pytest -v
+# Run tests with coverage and linter
+pytest -v --cov=app --cov-report=term-missing
 ruff check .
 
 # Start development server
@@ -105,20 +108,21 @@ Access the application at `http://localhost:8000`.
 nestspot/
 ├── .github/
 │   └── workflows/
-│       └── ci.yml                 # Automated CI (Ruff, Pytest, Docker Build)
+│       └── ci.yml                 # Automated CI (Ruff, Pytest Coverage, Docker Build)
 ├── app/
 │   ├── main.py                    # FastAPI application entrypoint
 │   ├── config.py                  # Pydantic BaseSettings
 │   ├── models/                    # Pydantic schemas (Spot, Booking, ETA)
 │   ├── routers/                   # API endpoint controllers
-│   ├── services/                  # Business logic & time management
-│   └── static/                    # Responsive web UI assets (HTML, CSS, JS)
-├── tests/                         # Pytest test suite (15 automated tests)
+│   ├── services/                  # Business logic, time management & plate normalization
+│   └── static/                    # Responsive web UI assets (HTML, CSS, modular ES6 JS)
+├── tests/                         # Pytest test suite (44+ tests, 97%+ coverage)
+├── ARCHITECTURE.md                # Architectural design and Mermaid diagrams
 ├── Dockerfile                     # Multi-stage container definition
 ├── docker-compose.yml             # Local orchestration
 ├── pyproject.toml                 # Ruff and Pytest tooling config
 ├── requirements.txt               # Production dependencies
-└── requirements-dev.txt           # Testing & dev dependencies
+└── requirements-dev.txt           # Testing & dev dependencies (including pytest-cov)
 ```
 
 ---
