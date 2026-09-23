@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.git/
+.gitignore
+.github/
+.pytest_cache/
+.coverage
+htmlcov/
+.ruff_cache/
+tests/
+*.md
+.DS_Store
+Thumbs.db
