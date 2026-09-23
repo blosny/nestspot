@@ -2,11 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query
 
-from app.models.spot import (
-    ParkingSpot,
-    SpotStatus,
-    SpotSummary,
-)
+from app.models.spot import ParkingSpot, SpotStatus, SpotSummary, UpdateAvailabilityRequest
 from app.services.spot_service import spot_service
 
 router = APIRouter(prefix="/api/spots", tags=["Parking Spots"])
@@ -38,6 +34,23 @@ async def get_spots_summary() -> SpotSummary:
 async def get_spot(spot_id: str) -> ParkingSpot:
     """Retrieve detailed information for a specific parking spot."""
     spot = spot_service.get_spot_by_id(spot_id)
+    if not spot:
+        raise HTTPException(status_code=404, detail=f"Parking spot '{spot_id}' not found")
+    return spot
+
+
+@router.patch("/{spot_id}/availability", response_model=ParkingSpot)
+async def update_spot_availability(spot_id: str, req: UpdateAvailabilityRequest) -> ParkingSpot:
+    """Update vacation mode and recurring away windows for a spot owner."""
+    try:
+        spot = spot_service.update_availability(
+            spot_id=spot_id,
+            is_vacation_mode=req.is_vacation_mode,
+            vacation_end_date=req.vacation_end_date,
+            windows=req.windows,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
     if not spot:
         raise HTTPException(status_code=404, detail=f"Parking spot '{spot_id}' not found")
     return spot
