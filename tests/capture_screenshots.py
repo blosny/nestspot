@@ -1,3 +1,4 @@
+# ruff: noqa: E402, I001
 import asyncio
 from pathlib import Path
 import sys
@@ -13,10 +14,12 @@ import uvicorn
 SCREENSHOTS_DIR = Path("docs/screenshots")
 SCREENSHOTS_DIR.mkdir(parents=True, exist_ok=True)
 
+
 def start_server():
     config = uvicorn.Config(app, host="127.0.0.1", port=8000, log_level="error")
     server = uvicorn.Server(config)
     server.run()
+
 
 async def capture_nestspot_walkthrough():
     # Start uvicorn in background thread
@@ -75,6 +78,7 @@ async def capture_nestspot_walkthrough():
 
         await browser.close()
         print("All 6 screenshots successfully captured!")
+
 
 if __name__ == "__main__":
     asyncio.run(capture_nestspot_walkthrough())
