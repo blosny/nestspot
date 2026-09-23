@@ -10,7 +10,10 @@ router = APIRouter(prefix="/api/security", tags=["Gate Security"])
 
 @router.get("/verify", response_model=SecurityVerificationResult)
 async def verify_plate(
-    plate: Annotated[str, Query(description="Vehicle license plate to verify", min_length=2)],
+    plate: Annotated[
+        str,
+        Query(description="Vehicle license plate to verify", min_length=1, max_length=32),
+    ],
 ) -> SecurityVerificationResult:
     """Verify license plate against active resident and visitor permits."""
     if not plate or not plate.strip():

@@ -12,6 +12,11 @@ class SpotService:
         self._spots: dict[str, ParkingSpot] = {}
         self._initialize_seed_data()
 
+    def reset(self) -> None:
+        """Restore seed parking layout (used by tests)."""
+        self._spots.clear()
+        self._initialize_seed_data()
+
     def _initialize_seed_data(self) -> None:
         """Seed initial realistic 24 parking spots for Block A and Block B."""
         sample_residents_a = [
@@ -139,6 +144,30 @@ class SpotService:
         spot.status = status
         spot.current_occupant_type = occupant_type
         spot.current_vehicle_plate = vehicle_plate
+        return spot
+
+    def update_availability(
+        self,
+        spot_id: str,
+        is_vacation_mode: bool,
+        vacation_end_date: str | None,
+        windows: list[TimeWindow],
+    ) -> ParkingSpot | None:
+        """Update vacation mode and recurring away windows for a spot."""
+        from app.services.time_window import any_schedule_conflict
+
+        spot = self._spots.get(spot_id)
+        if not spot:
+            return None
+        if any_schedule_conflict(windows):
+            raise ValueError("Away schedule windows overlap on the same day.")
+        spot.is_vacation_mode = is_vacation_mode
+        spot.vacation_end_date = vacation_end_date
+        spot.available_windows = windows
+        if is_vacation_mode and spot.status == SpotStatus.AVAILABLE:
+            spot.status = SpotStatus.AWAY_VACATION
+        if not is_vacation_mode and spot.status == SpotStatus.AWAY_VACATION:
+            spot.status = SpotStatus.AVAILABLE
         return spot
 
 

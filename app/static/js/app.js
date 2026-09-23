@@ -1,24 +1,22 @@
 /**
- * NestSpot - Main Client Logic with Booking, Security Gate, and Live ETA Departure System
+ * NestSpot – client orchestration: stats, bookings, gate, live ETA.
  */
 
-let allSpots = [];
-let activeBookings = [];
-let activeAlerts = [];
-let currentBlock = "ALL";
-let currentFilter = "ALL";
-let currentSearch = "";
-let etaTimerInterval = null;
+const NestSpotState = {
+    spots: [],
+    bookings: [],
+    alerts: [],
+    block: "ALL",
+    filter: "ALL",
+    search: "",
+    etaTimers: {},
+};
 
 document.addEventListener("DOMContentLoaded", () => {
+    document.documentElement.lang = currentLang;
     applyTranslations();
     initEventListeners();
-    fetchComplexStats();
-    fetchSpots();
-    fetchActiveBookings();
-    fetchActiveAlerts();
-
-    // Periodic live sync for ETA alerts & bookings every 4 seconds
+    refreshDashboard();
     setInterval(() => {
         fetchActiveAlerts();
         fetchActiveBookings();
@@ -26,84 +24,51 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function initEventListeners() {
-    // Block Switcher
-    const segmentBtns = document.querySelectorAll(".segment-btn");
-    segmentBtns.forEach(btn => {
+    document.querySelectorAll(".segment-btn").forEach((btn) => {
         btn.addEventListener("click", () => {
-            segmentBtns.forEach(b => b.classList.remove("active"));
-            btn.classList.add("active");
-            currentBlock = btn.dataset.block;
-            renderParkingGrid(allSpots, currentBlock, currentFilter, currentSearch);
+            setActiveExclusive(document.querySelectorAll(".segment-btn"), btn);
+            NestSpotState.block = btn.dataset.block;
+            redrawGrid();
         });
     });
 
-    // Filter Buttons
-    const filterBtns = document.querySelectorAll(".filter-btn");
-    filterBtns.forEach(btn => {
+    document.querySelectorAll(".filter-btn[data-filter]").forEach((btn) => {
         btn.addEventListener("click", () => {
-            filterBtns.forEach(b => b.classList.remove("active"));
-            btn.classList.add("active");
-            currentFilter = btn.dataset.filter;
-            renderParkingGrid(allSpots, currentBlock, currentFilter, currentSearch);
+            setActiveExclusive(document.querySelectorAll(".filter-btn[data-filter]"), btn);
+            NestSpotState.filter = btn.dataset.filter;
+            redrawGrid();
         });
     });
 
-    // Search Box
     const searchInput = document.getElementById("spotSearchInput");
     if (searchInput) {
         searchInput.addEventListener("input", (e) => {
-            currentSearch = e.target.value;
-            renderParkingGrid(allSpots, currentBlock, currentFilter, currentSearch);
+            NestSpotState.search = e.target.value;
+            redrawGrid();
         });
     }
 
-    // Modal Closes
-    const closeModalBtn = document.getElementById("closeModalBtn");
-    const modalBackdrop = document.getElementById("spotModalBackdrop");
-    if (closeModalBtn && modalBackdrop) {
-        closeModalBtn.addEventListener("click", () => modalBackdrop.classList.remove("active"));
-        modalBackdrop.addEventListener("click", (e) => {
-            if (e.target === modalBackdrop) modalBackdrop.classList.remove("active");
-        });
-    }
+    bindModalDismiss("spotModalBackdrop", "closeModalBtn");
+    bindModalDismiss("etaModalBackdrop", "closeEtaModalBtn");
+    bindModalDismiss("securityModalBackdrop", "closeSecurityModalBtn");
+    bindModalDismiss("activePermitsModalBackdrop", "closeActivePermitsModalBtn");
+    bindModalDismiss("alternativesModalBackdrop", "closeAlternativesModalBtn");
 
-    // ETA Modal Listeners
     const headedHomeBtn = document.getElementById("headedHomeBtn");
-    const etaModalBackdrop = document.getElementById("etaModalBackdrop");
-    const closeEtaModalBtn = document.getElementById("closeEtaModalBtn");
-    if (headedHomeBtn && etaModalBackdrop) {
-        headedHomeBtn.addEventListener("click", () => {
-            etaModalBackdrop.classList.add("active");
-        });
-        if (closeEtaModalBtn) {
-            closeEtaModalBtn.addEventListener("click", () => etaModalBackdrop.classList.remove("active"));
-        }
-        etaModalBackdrop.addEventListener("click", (e) => {
-            if (e.target === etaModalBackdrop) etaModalBackdrop.classList.remove("active");
-        });
-    }
+    if (headedHomeBtn) headedHomeBtn.addEventListener("click", () => openModal("etaModalBackdrop"));
 
-    // Security Gate Modal
     const securityGateBtn = document.getElementById("securityGateBtn");
-    const securityModalBackdrop = document.getElementById("securityModalBackdrop");
-    const closeSecurityModalBtn = document.getElementById("closeSecurityModalBtn");
-    const verifyPlateBtn = document.getElementById("verifyPlateBtn");
     const gatePlateInput = document.getElementById("gatePlateInput");
-
-    if (securityGateBtn && securityModalBackdrop) {
+    if (securityGateBtn) {
         securityGateBtn.addEventListener("click", () => {
-            securityModalBackdrop.classList.add("active");
-            document.getElementById("securityVerificationResult").innerHTML = "";
+            const result = document.getElementById("securityVerificationResult");
+            if (result) result.innerHTML = "";
+            openModal("securityModalBackdrop");
             if (gatePlateInput) gatePlateInput.focus();
         });
-        if (closeSecurityModalBtn) {
-            closeSecurityModalBtn.addEventListener("click", () => securityModalBackdrop.classList.remove("active"));
-        }
-        securityModalBackdrop.addEventListener("click", (e) => {
-            if (e.target === securityModalBackdrop) securityModalBackdrop.classList.remove("active");
-        });
     }
 
+    const verifyPlateBtn = document.getElementById("verifyPlateBtn");
     if (verifyPlateBtn && gatePlateInput) {
         verifyPlateBtn.addEventListener("click", () => handleSecurityPlateLookup(gatePlateInput.value));
         gatePlateInput.addEventListener("keydown", (e) => {
@@ -111,52 +76,34 @@ function initEventListeners() {
         });
     }
 
-    // Active Passes Modal
     const activePassesBtn = document.getElementById("activePassesBtn");
-    const activePermitsModalBackdrop = document.getElementById("activePermitsModalBackdrop");
-    const closeActivePermitsModalBtn = document.getElementById("closeActivePermitsModalBtn");
-
-    if (activePassesBtn && activePermitsModalBackdrop) {
+    if (activePassesBtn) {
         activePassesBtn.addEventListener("click", () => {
             renderActivePermitsModal();
-            activePermitsModalBackdrop.classList.add("active");
-        });
-        if (closeActivePermitsModalBtn) {
-            closeActivePermitsModalBtn.addEventListener("click", () => activePermitsModalBackdrop.classList.remove("active"));
-        }
-        activePermitsModalBackdrop.addEventListener("click", (e) => {
-            if (e.target === activePermitsModalBackdrop) activePermitsModalBackdrop.classList.remove("active");
-        });
-    }
-
-    // Alternatives Modal
-    const closeAlternativesModalBtn = document.getElementById("closeAlternativesModalBtn");
-    const alternativesModalBackdrop = document.getElementById("alternativesModalBackdrop");
-    if (closeAlternativesModalBtn && alternativesModalBackdrop) {
-        closeAlternativesModalBtn.addEventListener("click", () => alternativesModalBackdrop.classList.remove("active"));
-        alternativesModalBackdrop.addEventListener("click", (e) => {
-            if (e.target === alternativesModalBackdrop) alternativesModalBackdrop.classList.remove("active");
+            openModal("activePermitsModalBackdrop");
         });
     }
 }
 
+function redrawGrid() {
+    renderParkingGrid(NestSpotState.spots, NestSpotState.block, NestSpotState.filter, NestSpotState.search);
+}
+
+async function refreshDashboard() {
+    await Promise.all([fetchComplexStats(), fetchSpots(), fetchActiveBookings(), fetchActiveAlerts()]);
+}
+
 async function fetchComplexStats() {
     try {
-        const res = await fetch("/api/spots/summary/stats");
-        if (!res.ok) throw new Error("Failed to fetch stats");
-        const stats = await res.json();
-        
+        const stats = await NestSpotApi.getStats();
         const summaryBadge = document.getElementById("spotsAvailableSummary");
         if (summaryBadge) {
             summaryBadge.textContent = `${stats.available_now} ${t("ofTotal")} ${stats.total_spots} ${t("spotsFreeSuffix")}`;
         }
-
         const countAvail = document.getElementById("countAvailable");
         if (countAvail) countAvail.textContent = stats.available_now;
-
         const countEv = document.getElementById("countEv");
         if (countEv) countEv.textContent = stats.ev_spots_count;
-
         const countVac = document.getElementById("countVacation");
         if (countVac) countVac.textContent = stats.vacation_spots_count;
     } catch (err) {
@@ -166,10 +113,8 @@ async function fetchComplexStats() {
 
 async function fetchSpots() {
     try {
-        const res = await fetch("/api/spots");
-        if (!res.ok) throw new Error("Failed to fetch spots");
-        allSpots = await res.json();
-        renderParkingGrid(allSpots, currentBlock, currentFilter, currentSearch);
+        NestSpotState.spots = await NestSpotApi.getSpots();
+        redrawGrid();
     } catch (err) {
         console.error("Error fetching spots:", err);
     }
@@ -177,9 +122,7 @@ async function fetchSpots() {
 
 async function fetchActiveBookings() {
     try {
-        const res = await fetch("/api/bookings?status=active");
-        if (!res.ok) throw new Error("Failed to fetch bookings");
-        activeBookings = await res.json();
+        NestSpotState.bookings = await NestSpotApi.getActiveBookings();
     } catch (err) {
         console.error("Error fetching active bookings:", err);
     }
@@ -187,288 +130,225 @@ async function fetchActiveBookings() {
 
 async function fetchActiveAlerts() {
     try {
-        const res = await fetch("/api/eta/active");
-        if (!res.ok) throw new Error("Failed to fetch active ETA alerts");
-        activeAlerts = await res.json();
+        NestSpotState.alerts = await NestSpotApi.getActiveAlerts();
         renderEtaAlertBanner();
     } catch (err) {
         console.error("Error fetching ETA alerts:", err);
     }
 }
 
+function clearEtaTimers() {
+    Object.values(NestSpotState.etaTimers).forEach((id) => clearInterval(id));
+    NestSpotState.etaTimers = {};
+}
+
 function renderEtaAlertBanner() {
     const bannerContainer = document.getElementById("liveEtaAlertContainer");
     if (!bannerContainer) return;
 
-    if (activeAlerts.length === 0) {
+    if (!NestSpotState.alerts.length) {
         bannerContainer.innerHTML = "";
-        if (etaTimerInterval) clearInterval(etaTimerInterval);
+        clearEtaTimers();
         return;
     }
 
-    const alert = activeAlerts[0]; // Active departure alert
-    const targetInfo = alert.target_vehicle_plate ? `(Plaka: ${alert.target_vehicle_plate})` : "";
+    bannerContainer.innerHTML = NestSpotState.alerts.map(renderEtaBannerCard).join("");
+    refreshIcons();
+    NestSpotState.alerts.forEach((alert) => startCountdownTimer(alert.id, new Date(alert.expected_arrival)));
+}
 
-    bannerContainer.innerHTML = `
+function renderEtaBannerCard(alert) {
+    const targetInfo = alert.target_vehicle_plate
+        ? `(${t("plateLabel")}: ${escapeHtml(alert.target_vehicle_plate)})`
+        : "";
+    const alts = alert.alternative_suggestions && alert.alternative_suggestions.length
+        ? `<button type="button" class="btn-solid btn-info" onclick="window.showAlternativeSpotsModal('${escapeHtml(alert.id)}')">${t("viewAlternativesBtn")}</button>`
+        : "";
+
+    return `
         <div class="eta-live-alert-banner">
             <div class="eta-alert-left">
-                <div class="eta-alert-icon">
-                    <i data-lucide="bell-ring"></i>
-                </div>
+                <div class="eta-alert-icon"><i data-lucide="bell-ring"></i></div>
                 <div>
-                    <div class="eta-alert-title">${t("etaActiveAlertTitle")} · Spot ${alert.spot_number}</div>
+                    <div class="eta-alert-title">${t("etaActiveAlertTitle")} · ${escapeHtml(alert.spot_number)}</div>
                     <div class="eta-alert-desc">
-                        ${alert.host_name} (Daire ${alert.host_flat_number}) yola çıktı! Lütfen park yerini boşaltın. ${targetInfo}
+                        ${escapeHtml(alert.host_name)} (${t("flatShort")} ${alert.host_flat_number}) ${t("etaHeadedDesc")} ${targetInfo}
                     </div>
                 </div>
             </div>
-
-            <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
-                <div style="text-align: right;">
-                    <div style="font-size: 0.7rem; color: #94a3b8; font-weight: 600;">${t("etaBufferCountdown")}</div>
-                    <div class="eta-countdown-badge" id="etaCountdownTimer">--:--</div>
+            <div class="eta-alert-actions">
+                <div class="eta-timer-wrap">
+                    <div class="eta-timer-label">${t("etaBufferCountdown")}</div>
+                    <div class="eta-countdown-badge" id="etaCountdown-${escapeHtml(alert.id)}">--:--</div>
                 </div>
-
-                ${alert.alternative_suggestions && alert.alternative_suggestions.length > 0 ? `
-                    <button class="filter-btn" style="background: #3b82f6; border: none; color: #fff; font-weight: 600;" onclick="window.showAlternativeSpotsModal('${alert.id}')">
-                        ${t("viewAlternativesBtn")}
-                    </button>
-                ` : ''}
-
-                <button class="filter-btn active" style="background: #10b981; border: none; color: #fff; font-weight: 600;" onclick="window.handleAcknowledgeAndRelease('${alert.id}', '${alert.spot_id}')">
+                ${alts}
+                <button type="button" class="btn-solid btn-success" onclick="window.handleAcknowledgeAndRelease('${escapeHtml(alert.id)}', '${escapeHtml(alert.spot_id)}')">
                     ${t("releaseSpotNowBtn")}
                 </button>
             </div>
         </div>
     `;
-
-    if (window.lucide) {
-        window.lucide.createIcons();
-    }
-
-    startCountdownTimer(new Date(alert.expected_arrival));
 }
 
-function startCountdownTimer(targetTime) {
-    if (etaTimerInterval) clearInterval(etaTimerInterval);
+function startCountdownTimer(alertId, targetTime) {
+    if (NestSpotState.etaTimers[alertId]) clearInterval(NestSpotState.etaTimers[alertId]);
 
     function update() {
-        const timerEl = document.getElementById("etaCountdownTimer");
+        const timerEl = document.getElementById(`etaCountdown-${alertId}`);
         if (!timerEl) return;
-
-        const now = new Date().getTime();
-        const distance = targetTime.getTime() - now;
-
+        const distance = targetTime.getTime() - Date.now();
         if (distance <= 0) {
-            timerEl.textContent = "00:00 (Varıldı)";
-            timerEl.style.color = "#f43f5e";
-            clearInterval(etaTimerInterval);
+            timerEl.textContent = `00:00 (${t("arrivedLabel")})`;
+            timerEl.classList.add("eta-expired");
+            clearInterval(NestSpotState.etaTimers[alertId]);
             return;
         }
-
         const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
         timerEl.textContent = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
     }
 
     update();
-    etaTimerInterval = setInterval(update, 1000);
+    NestSpotState.etaTimers[alertId] = setInterval(update, 1000);
 }
 
-window.submitEtaBroadcast = async function(e) {
+window.submitEtaBroadcast = async function (e) {
     e.preventDefault();
     const minutes = parseInt(document.getElementById("etaMinutesInput").value, 10);
-
     try {
-        const res = await fetch("/api/eta/broadcast", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                spot_id: "spot-a-01", // Ahmet Yılmaz's assigned spot
-                minutes_remaining: minutes,
-                host_name: "Ahmet Yılmaz",
-                note: "İşten çıktım, eve doğru geliyorum."
-            })
+        await NestSpotApi.broadcastEta({
+            spot_id: "spot-a-01",
+            minutes_remaining: minutes,
+            host_name: "Ahmet Yılmaz",
+            note: "Left work, heading home.",
         });
-
-        if (!res.ok) throw new Error("ETA bildirimi başlatılamadı.");
-
-        document.getElementById("etaModalBackdrop").classList.remove("active");
+        closeModal("etaModalBackdrop");
         await fetchActiveAlerts();
     } catch (err) {
         alert(err.message);
     }
 };
 
-window.handleAcknowledgeAndRelease = async function(alertId, spotId) {
+window.handleAcknowledgeAndRelease = async function (alertId, spotId) {
     try {
-        // Resolve ETA alert
-        await fetch(`/api/eta/${alertId}/resolve`, { method: "POST" });
-        
-        // Find if there is an active booking on this spot and complete it
-        const booking = activeBookings.find(b => b.spot_id === spotId);
-        if (booking) {
-            await fetch(`/api/bookings/${booking.id}/complete`, { method: "POST" });
-        }
-
-        await fetchSpots();
-        await fetchComplexStats();
-        await fetchActiveBookings();
-        await fetchActiveAlerts();
+        await NestSpotApi.resolveEta(alertId);
+        const booking = NestSpotState.bookings.find((b) => b.spot_id === spotId);
+        if (booking) await NestSpotApi.completeBooking(booking.id);
+        await refreshDashboard();
     } catch (err) {
         alert(err.message);
     }
 };
 
-window.showAlternativeSpotsModal = function(alertId) {
-    const alert = activeAlerts.find(a => a.id === alertId);
+window.showAlternativeSpotsModal = function (alertId) {
+    const alert = NestSpotState.alerts.find((a) => a.id === alertId);
     if (!alert || !alert.alternative_suggestions) return;
-
     const listEl = document.getElementById("alternativesList");
-    const modalBackdrop = document.getElementById("alternativesModalBackdrop");
-
-    listEl.innerHTML = alert.alternative_suggestions.map(s => `
-        <div style="background:#0b0f17; border:1px solid #232f48; border-radius:8px; padding:0.85rem; margin-bottom:0.6rem; display:flex; justify-content:space-between; align-items:center;">
+    listEl.innerHTML = alert.alternative_suggestions
+        .map(
+            (s) => `
+        <div class="list-row">
             <div>
-                <div style="font-weight:700; color:#fff; font-size:0.9rem;">
-                    Spot ${s.spot_number} (${s.block} Blok · Daire ${s.flat_number})
-                </div>
-                <div style="font-size:0.75rem; color:#94a3b8; margin-top:0.2rem;">
-                    Sakin: <strong style="color:#e2e8f0;">${s.owner_name}</strong> ${s.has_ev_charger ? '· ⚡ EV Wallbox Var' : ''}
+                <div class="list-row-title">${t("spotTitle")} ${escapeHtml(s.spot_number)} (${escapeHtml(s.block)} ${t("blockFlat")} · ${t("flatShort")} ${s.flat_number})</div>
+                <div class="muted-copy">
+                    ${t("residentShort")}: <strong class="text-strong">${escapeHtml(s.owner_name)}</strong>
+                    ${s.has_ev_charger ? " · ⚡ " + t("evWallbox") : ""}
                 </div>
             </div>
-            <button class="filter-btn active" style="background:#10b981; border:none; color:#fff; font-size:0.75rem; font-weight:600;" onclick="window.swapToAlternativeSpot('${s.spot_id}', '${alert.id}')">
-                Bu Yere Geç ➔
+            <button type="button" class="btn-solid btn-success btn-compact" onclick="window.swapToAlternativeSpot('${escapeHtml(s.spot_id)}', '${escapeHtml(alert.id)}')">
+                ${t("swapHereBtn")}
             </button>
-        </div>
-    `).join("");
-
-    modalBackdrop.classList.add("active");
+        </div>`
+        )
+        .join("");
+    openModal("alternativesModalBackdrop");
 };
 
-window.swapToAlternativeSpot = async function(newSpotId, alertId) {
+window.swapToAlternativeSpot = async function (newSpotId, alertId) {
     try {
-        // Create new booking on the new spot
-        await fetch("/api/bookings", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
+        const alert = NestSpotState.alerts.find((a) => a.id === alertId);
+        const booking = alert
+            ? NestSpotState.bookings.find((b) => b.spot_id === alert.spot_id)
+            : null;
+        if (booking) {
+            await NestSpotApi.swapBooking(booking.id, newSpotId);
+        } else {
+            await NestSpotApi.createBooking({
                 spot_id: newSpotId,
                 booking_type: "second_car",
-                vehicle_plate: "34 DNZ 102",
-                driver_name: "Deniz Polat (Yer Değiştirildi)",
-                host_flat_number: 10,
-                duration_hours: 4
-            })
-        });
-
-        // Resolve previous alert
-        await fetch(`/api/eta/${alertId}/resolve`, { method: "POST" });
-
-        document.getElementById("alternativesModalBackdrop").classList.remove("active");
-        await fetchSpots();
-        await fetchComplexStats();
-        await fetchActiveBookings();
-        await fetchActiveAlerts();
+                vehicle_plate: alert && alert.target_vehicle_plate ? alert.target_vehicle_plate : "34 SWAP 01",
+                driver_name: alert && alert.target_driver_name ? alert.target_driver_name : "Spot Swap",
+                host_flat_number: 1,
+                duration_hours: 4,
+            });
+            if (alertId) await NestSpotApi.resolveEta(alertId);
+        }
+        closeModal("alternativesModalBackdrop");
+        await refreshDashboard();
     } catch (err) {
         alert(err.message);
     }
 };
 
-window.handleSpotClick = function(spotId) {
-    const spot = allSpots.find(s => s.id === spotId);
+window.handleSpotClick = function (spotId) {
+    const spot = NestSpotState.spots.find((s) => s.id === spotId);
     if (!spot) return;
-    
     const modalContent = document.getElementById("modalContent");
     const modalBackdrop = document.getElementById("spotModalBackdrop");
     if (modalContent && modalBackdrop) {
         modalContent.innerHTML = renderCleanSpotModal(spot);
-        modalBackdrop.classList.add("active");
-        if (window.lucide) {
-            window.lucide.createIcons();
-        }
+        openModal("spotModalBackdrop");
+        refreshIcons();
     }
 };
 
-window.showBookingForm = function(spotId, bookingType) {
-    const spot = allSpots.find(s => s.id === spotId);
+window.showBookingForm = function (spotId, bookingType) {
+    const spot = NestSpotState.spots.find((s) => s.id === spotId);
     if (!spot) return;
-
     const modalContent = document.getElementById("modalContent");
-    if (modalContent) {
-        modalContent.innerHTML = renderBookingFormHtml(spot, bookingType);
-    }
+    if (modalContent) modalContent.innerHTML = renderBookingFormHtml(spot, bookingType);
 };
 
-window.submitBooking = async function(e, spotId, bookingType) {
+window.submitBooking = async function (e, spotId, bookingType) {
     e.preventDefault();
-    const plate = document.getElementById("formPlate").value;
-    const driver = document.getElementById("formDriver").value;
-    const duration = parseInt(document.getElementById("formDuration").value, 10);
-    const notes = document.getElementById("formNotes").value;
-
+    const payload = {
+        spot_id: spotId,
+        booking_type: bookingType,
+        vehicle_plate: document.getElementById("formPlate").value,
+        driver_name: document.getElementById("formDriver").value,
+        host_flat_number: 1,
+        duration_hours: parseInt(document.getElementById("formDuration").value, 10),
+        notes: document.getElementById("formNotes").value || null,
+    };
     try {
-        const payload = {
-            spot_id: spotId,
-            booking_type: bookingType,
-            vehicle_plate: plate,
-            driver_name: driver,
-            host_flat_number: 1,
-            duration_hours: duration,
-            notes: notes || null
-        };
-
-        const res = await fetch("/api/bookings", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-        });
-
-        if (!res.ok) {
-            const errData = await res.json();
-            throw new Error(errData.detail || "Booking failed");
-        }
-
-        const booking = await res.json();
+        const booking = await NestSpotApi.createBooking(payload);
         const modalContent = document.getElementById("modalContent");
-        if (modalContent) {
-            modalContent.innerHTML = renderDigitalPassCardHtml(booking);
-        }
-
-        await fetchSpots();
-        await fetchComplexStats();
-        await fetchActiveBookings();
+        if (modalContent) modalContent.innerHTML = renderDigitalPassCardHtml(booking);
+        await refreshDashboard();
     } catch (err) {
         alert(err.message);
     }
 };
 
-window.handleReleaseActiveSpot = async function(spotId) {
-    const activeBooking = activeBookings.find(b => b.spot_id === spotId);
-    if (!activeBooking) {
-        const res = await fetch("/api/bookings");
-        const list = await res.json();
-        const found = list.find(b => b.spot_id === spotId && b.status === "active");
-        if (found) {
-            await completeBookingRequest(found.id);
-        } else {
-            alert("No active session found.");
-        }
+window.handleReleaseActiveSpot = async function (spotId) {
+    let booking = NestSpotState.bookings.find((b) => b.spot_id === spotId);
+    if (!booking) {
+        const list = await NestSpotApi.getAllBookings();
+        booking = list.find((b) => b.spot_id === spotId && b.status === "active");
+    }
+    if (!booking) {
+        alert(t("noActiveSession"));
         return;
     }
-    await completeBookingRequest(activeBooking.id);
+    await completeBookingRequest(booking.id);
 };
 
 async function completeBookingRequest(bookingId) {
     try {
-        const res = await fetch(`/api/bookings/${bookingId}/complete`, { method: "POST" });
-        if (!res.ok) throw new Error("Failed to release spot");
-        
-        document.getElementById("spotModalBackdrop").classList.remove("active");
-        await fetchSpots();
-        await fetchComplexStats();
-        await fetchActiveBookings();
+        await NestSpotApi.completeBooking(bookingId);
+        closeModal("spotModalBackdrop");
+        closeModal("activePermitsModalBackdrop");
+        await refreshDashboard();
     } catch (err) {
         alert(err.message);
     }
@@ -477,65 +357,60 @@ async function completeBookingRequest(bookingId) {
 async function handleSecurityPlateLookup(plate) {
     const resultBox = document.getElementById("securityVerificationResult");
     if (!plate || !plate.trim()) {
-        resultBox.innerHTML = `<div style="padding:0.75rem; background:rgba(244,63,94,0.15); border:1px solid #f43f5e; color:#fda4af; border-radius:6px; font-size:0.8rem;">Lütfen plaka girin.</div>`;
+        resultBox.innerHTML = `<div class="verify-box verify-fail">${t("enterPlate")}</div>`;
         return;
     }
-
     try {
-        const res = await fetch(`/api/security/verify?plate=${encodeURIComponent(plate)}`);
-        const data = await res.json();
-
+        const data = await NestSpotApi.verifyPlate(plate);
         if (data.is_authorized) {
             resultBox.innerHTML = `
-                <div style="padding:1rem; background:rgba(16,185,129,0.15); border:1px solid #10b981; border-radius:8px; margin-top:0.75rem;">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span style="font-weight:800; color:#34d399; font-size:0.9rem;">✓ ${t("authorized")}</span>
-                        <span style="font-family:monospace; font-weight:700; color:#fff; background:#000; padding:0.2rem 0.5rem; border-radius:4px;">${data.vehicle_plate}</span>
+                <div class="verify-box verify-ok">
+                    <div class="verify-head">
+                        <span class="verify-ok-title">✓ ${t("authorized")}</span>
+                        <span class="plate-chip">${escapeHtml(data.vehicle_plate)}</span>
                     </div>
-                    <div style="font-size:0.85rem; color:#fff; font-weight:600; margin-top:0.5rem;">
-                        📍 Park Yeri: Spot ${data.spot_number} (${data.block} Blok · Daire ${data.host_flat})
+                    <div class="verify-line">📍 ${t("parkAt")}: ${t("spotTitle")} ${escapeHtml(data.spot_number)} (${escapeHtml(data.block)} ${t("blockFlat")} · ${t("flatShort")} ${data.host_flat})</div>
+                    <div class="muted-copy">
+                        ${t("driverName")}: <strong class="text-strong">${escapeHtml(data.driver_name)}</strong>
+                        · ${t("permitCodeShort")}: <strong class="text-info">${escapeHtml(data.permit_code)}</strong>
                     </div>
-                    <div style="font-size:0.75rem; color:#94a3b8; margin-top:0.25rem;">
-                        Sürücü: <strong style="color:#fff;">${data.driver_name}</strong> · İzin Kodu: <strong style="color:#60a5fa;">${data.permit_code}</strong>
-                    </div>
-                </div>
-            `;
+                </div>`;
         } else {
             resultBox.innerHTML = `
-                <div style="padding:1rem; background:rgba(244,63,94,0.15); border:1px solid #f43f5e; border-radius:8px; margin-top:0.75rem;">
-                    <div style="font-weight:800; color:#fb7185; font-size:0.9rem;">✕ ${t("unauthorized")}</div>
-                    <div style="font-size:0.8rem; color:#fecdd3; margin-top:0.35rem;">${data.message}</div>
-                </div>
-            `;
+                <div class="verify-box verify-fail">
+                    <div class="verify-fail-title">✕ ${t("unauthorized")}</div>
+                    <div class="verify-fail-msg">${escapeHtml(data.message)}</div>
+                </div>`;
         }
     } catch (err) {
-        resultBox.innerHTML = `<div style="color:#fda4af; font-size:0.8rem;">Hata: ${err.message}</div>`;
+        resultBox.innerHTML = `<div class="verify-box verify-fail">${t("errorPrefix")}: ${escapeHtml(err.message)}</div>`;
     }
 }
 
 function renderActivePermitsModal() {
     const listContainer = document.getElementById("activePermitsList");
     if (!listContainer) return;
-
-    if (activeBookings.length === 0) {
+    if (!NestSpotState.bookings.length) {
         listContainer.innerHTML = `<div class="empty-state">${t("noActivePermits")}</div>`;
         return;
     }
-
-    listContainer.innerHTML = activeBookings.map(b => `
-        <div style="background:#0b0f17; border:1px solid #232f48; border-radius:8px; padding:0.85rem; margin-bottom:0.6rem; display:flex; justify-content:space-between; align-items:center;">
+    listContainer.innerHTML = NestSpotState.bookings
+        .map(
+            (b) => `
+        <div class="list-row">
             <div>
-                <div style="display:flex; align-items:center; gap:0.5rem;">
-                    <span style="font-family:monospace; font-weight:700; color:#fff; background:#000; padding:0.15rem 0.4rem; border-radius:4px; font-size:0.8rem;">${b.vehicle_plate}</span>
-                    <span style="font-weight:700; font-size:0.85rem; color:#10b981;">Spot ${b.spot_number} (${b.block} Blok)</span>
+                <div class="list-row-head">
+                    <span class="plate-chip">${escapeHtml(b.vehicle_plate)}</span>
+                    <span class="text-success-strong">${t("spotTitle")} ${escapeHtml(b.spot_number)} (${escapeHtml(b.block)} ${t("blockFlat")})</span>
                 </div>
-                <div style="font-size:0.75rem; color:#94a3b8; margin-top:0.3rem;">
-                    ${b.driver_name} · Kod: <strong style="color:#60a5fa;">${b.permit_code}</strong>
+                <div class="muted-copy">
+                    ${escapeHtml(b.driver_name)} · ${t("permitCodeShort")}: <strong class="text-info">${escapeHtml(b.permit_code)}</strong>
                 </div>
             </div>
-            <button class="filter-btn" style="background:#f43f5e; border:none; color:#fff; font-size:0.75rem;" onclick="window.handleReleaseActiveSpot('${b.spot_id}')">
+            <button type="button" class="btn-solid btn-danger btn-compact" onclick="window.handleReleaseActiveSpot('${escapeHtml(b.spot_id)}')">
                 ${t("releaseBtn")}
             </button>
-        </div>
-    `).join("");
+        </div>`
+        )
+        .join("");
 }

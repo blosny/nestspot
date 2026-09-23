@@ -85,3 +85,51 @@ async def test_get_summary_stats():
     assert stats["total_spots"] == 24
     assert stats["available_now"] > 0
     assert stats["ev_spots_count"] > 0
+
+
+@pytest.mark.asyncio
+async def test_filter_spots_by_vacation_and_status():
+    """Verify filtering spots by vacation mode and spot status."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        res_vacation = await client.get("/api/spots?is_vacation=true")
+        assert res_vacation.status_code == 200
+        spots = res_vacation.json()
+        assert all(s["is_vacation_mode"] is True for s in spots)
+
+        res_available = await client.get("/api/spots?status=available")
+        assert res_available.status_code == 200
+        avail_spots = res_available.json()
+        assert all(s["status"] == "available" for s in avail_spots)
+
+
+@pytest.mark.asyncio
+async def test_update_spot_availability():
+    """Verify updating spot vacation mode and recurring windows."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        payload = {
+            "is_vacation_mode": True,
+            "vacation_end_date": "2026-10-01",
+            "windows": [
+                {"days": ["Mon", "Tue"], "start_time": "09:00", "end_time": "18:00"}
+            ],
+        }
+        res = await client.patch("/api/spots/spot-a-01/availability", json=payload)
+        assert res.status_code == 200
+        spot = res.json()
+        assert spot["is_vacation_mode"] is True
+        assert len(spot["available_windows"]) == 1
+
+        # Test invalid window time format
+        invalid_payload = {
+            "windows": [
+                {"days": ["Mon"], "start_time": "invalid", "end_time": "18:00"}
+            ]
+        }
+        res_err = await client.patch("/api/spots/spot-a-01/availability", json=invalid_payload)
+        assert res_err.status_code == 422
+
+        # Test 404 spot
+        res_404 = await client.patch("/api/spots/spot-non-existent/availability", json=payload)
+        assert res_404.status_code == 404

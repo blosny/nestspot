@@ -1,6 +1,7 @@
 import uuid
 from datetime import UTC, datetime, timedelta
 
+from app.models.booking import BookingStatus
 from app.models.eta import (
     AlternativeSpotSuggestion,
     ETABroadcastRequest,
@@ -15,8 +16,20 @@ class ETAService:
     def __init__(self) -> None:
         self._active_alerts: dict[str, ETABroadcastStatus] = {}
 
+    def reset(self) -> None:
+        """Clear in-memory alerts (used by tests)."""
+        self._active_alerts.clear()
+
+    def _expire_stale_alerts(self, now: datetime | None = None) -> None:
+        """Deactivate alerts whose arrival buffer has elapsed."""
+        moment = now or datetime.now(UTC)
+        for alert in self._active_alerts.values():
+            if alert.is_active and alert.expected_arrival <= moment:
+                alert.is_active = False
+
     def broadcast_departure(self, req: ETABroadcastRequest) -> ETABroadcastStatus:
         """Create an active arrival ETA alert when the resident leaves work."""
+        self._expire_stale_alerts()
         spot = spot_service.get_spot_by_id(req.spot_id)
         if not spot:
             raise ValueError(f"Spot '{req.spot_id}' not found.")
@@ -25,19 +38,14 @@ class ETAService:
         expected_arrival = now + timedelta(minutes=req.minutes_remaining)
         broadcast_id = str(uuid.uuid4())
 
-        # Find target vehicle and driver occupying the spot
         target_plate = spot.current_vehicle_plate
         target_driver = None
-
-        # Check in active bookings
-        for b in booking_service.get_all_bookings():
-            if b.spot_id == spot.id and b.status.value == "active":
-                target_plate = b.vehicle_plate
-                target_driver = b.driver_name
+        for booking in booking_service.get_all_bookings():
+            if booking.spot_id == spot.id and booking.status == BookingStatus.ACTIVE:
+                target_plate = booking.vehicle_plate
+                target_driver = booking.driver_name
                 break
 
-        # Suggest other available spots in the complex
-        all_spots = spot_service.get_all_spots()
         alternatives = [
             AlternativeSpotSuggestion(
                 spot_id=s.id,
@@ -48,7 +56,7 @@ class ETAService:
                 has_ev_charger=s.has_ev_charger,
                 status=s.status.value,
             )
-            for s in all_spots
+            for s in spot_service.get_all_spots()
             if s.id != spot.id and s.status in (SpotStatus.AVAILABLE, SpotStatus.AWAY_VACATION)
         ]
 
@@ -64,24 +72,40 @@ class ETAService:
             target_vehicle_plate=target_plate,
             target_driver_name=target_driver,
             is_active=True,
-            alternative_suggestions=alternatives[:3],  # Top 3 nearby suggestions
+            alternative_suggestions=alternatives[:3],
             created_at=now,
         )
+
+        # One live buffer per spot: supersede earlier concurrent alerts.
+        for existing in self._active_alerts.values():
+            if existing.spot_id == spot.id and existing.is_active:
+                existing.is_active = False
 
         self._active_alerts[broadcast_id] = alert
         return alert
 
     def get_active_alerts(self) -> list[ETABroadcastStatus]:
-        """Fetch all currently active ETA arrival alerts."""
+        """Fetch all currently active ETA arrival alerts (expired ones dropped)."""
+        self._expire_stale_alerts()
         return [alert for alert in self._active_alerts.values() if alert.is_active]
 
     def resolve_alert(self, broadcast_id: str) -> ETABroadcastStatus | None:
         """Mark an alert as resolved / acknowledged."""
+        self._expire_stale_alerts()
         alert = self._active_alerts.get(broadcast_id)
         if not alert:
             return None
         alert.is_active = False
         return alert
+
+    def resolve_alerts_for_spot(self, spot_id: str) -> int:
+        """Dismiss every live alert tied to a spot (used after swap/release)."""
+        resolved = 0
+        for alert in self._active_alerts.values():
+            if alert.spot_id == spot_id and alert.is_active:
+                alert.is_active = False
+                resolved += 1
+        return resolved
 
 
 eta_service = ETAService()

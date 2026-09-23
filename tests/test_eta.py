@@ -61,3 +61,20 @@ async def test_resolve_eta_alert():
         res_res = await client.post(f"/api/eta/{alert_id}/resolve")
         assert res_res.status_code == 200
         assert res_res.json()["is_active"] is False
+
+
+@pytest.mark.asyncio
+async def test_eta_error_cases():
+    """Verify error cases for ETA broadcast and resolution."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        # Broadcast on unknown spot -> 400
+        res_unknown = await client.post(
+            "/api/eta/broadcast",
+            json={"spot_id": "spot-unknown-99", "minutes_remaining": 15, "host_name": "Ghost"},
+        )
+        assert res_unknown.status_code == 400
+
+        # Resolve unknown alert -> 404
+        res_404 = await client.post("/api/eta/unknown-broadcast-id/resolve")
+        assert res_404.status_code == 404

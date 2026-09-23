@@ -1,6 +1,6 @@
 from enum import StrEnum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class SpotStatus(StrEnum):
@@ -27,6 +27,14 @@ class TimeWindow(BaseModel):
         description="Active days of the week"
     )
     title: str = Field(default="Work Hours", description="Label for availability")
+
+    @field_validator("start_time", "end_time")
+    @classmethod
+    def validate_hhmm(cls, value: str) -> str:
+        from app.services.time_window import parse_hhmm
+
+        parse_hhmm(value)
+        return value
 
 
 class ParkingSpot(BaseModel):
